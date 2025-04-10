@@ -177,7 +177,7 @@ Yuqorida tavsiflangan string.h kutubxonasi funksiyalarini amalga oshirishingiz l
 - Kutubxona gcc kompilyatoridan foydalangan holda C11 standartidagi C tilida ishlab chiqilishi kerak.
 - Kutubxona kodi, jumladan sarlavha fayllari, meyk fayllar va kutubxonaning o'zi develop tarmog’idagi src papkasida joylashgan bo'lishi kerak.
 - Eskirgan yoki iste’moldan chiqarilgan til konstruksiyalari va kutubxona funksiyalaridan foydalanmang. Til va ishlatiluvchi kutubxonalar bo’yicha rasmiy hujjatlardagi legacy va obsolete belgilariga e'tibor bering. POSIX.1-2017 standartiga qarab mo’ljal oling.
-- Kod yozishda Google Style ga amal qilinishi kerak.
+- Kod yozishda C++ uchun Google Style ((havola)[(https://google.github.io/styleguide/cppguide.html)]) ga amal qiling.
 - Yechimni s21\_string.a nomli statik kutubxona sifatida loyihalashtiring (s21\_string.h sarlavha fayli bilan).
 - Kutubxona tuzilmaviy dasturlash tamoyillariga muvofiq ishlab chiqilishi kerak, koddagi takrorlanishlarni albatta bartaraf eting.
 - Check kutubxonasidan foydalanib, kutubxona funksiyalarining to'liq unit testlar bilan qoplamasini tayyorlang.
