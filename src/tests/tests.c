@@ -9,7 +9,7 @@ int main(){
 }
 
 void run_tests(){
-    Suite * tests_array[] ={s21_memchr_suite(), NULL};
+    Suite * tests_array[] ={s21_memchr_suite(),s21_memcmp_suite(), NULL};
     for(Suite ** current_test = tests_array; *current_test != NULL; current_test++){
         run(*current_test);
     }
