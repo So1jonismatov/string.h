@@ -4,8 +4,9 @@
 Suite *s21_memchr_suite(void);
 
 
-
 void run_tests();
+void run(Suite *test);
+
 
 
 #endif
