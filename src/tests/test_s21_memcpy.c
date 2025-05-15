@@ -12,3 +12,4 @@ START_TEST(test_s21_memcpy_normal){
     ck_assert_mem_eq(result, expected_result, n);
 }END_TEST
 
+// bu hali tax ema shuniyam tugatib quyish kerak
