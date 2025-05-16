@@ -1,0 +1,12 @@
+#include "s21_string.h"
+
+
+char *s21_strchr(const char *str, int c){
+    if ((unsigned char) c == '\0') return str + s21_strlen(str);
+    
+    while (*str != '\0'){
+        if (*str == (unsigned char) c) return str;
+        str++;
+    }
+    return S21_NULL;
+}
