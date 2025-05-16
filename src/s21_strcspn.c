@@ -5,13 +5,13 @@ s21_size_t s21_strcspn(const char *str1, const char *str2){
 
     bool reject[256] = {0};
     while (*str2 != '\0'){
-        reject[(unsigned int) *str2] = 1;
+        reject[(unsigned char) *str2] = 1;
         str2++;
     }
 
     int len = 0;
     while (*str1 != '\0'){
-        if (reject[(unsigned int) *str1]) return len;
+        if (reject[(unsigned char) *str1]) return len;
 
         len++;
         str1++;
