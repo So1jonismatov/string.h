@@ -8,3 +8,5 @@ s21_size_t min(s21_size_t a, s21_size_t b){
 char * find_null(char * c){
     return (c + s21_strlen(c));
 }
+
+
