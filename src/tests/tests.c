@@ -9,7 +9,21 @@ int main(){
 }
 
 void run_tests(){
-    Suite * tests_array[] ={s21_memchr_suite(),s21_memcmp_suite(), NULL};
+    Suite * tests_array[] ={s21_memchr_suite(),s21_memcmp_suite(),s21_memcpy_suite(),
+        s21_memset_suite(),
+        s21_strlen_suite(),
+        s21_strncat_suite(),
+        s21_strncmp_suite(),
+        s21_strchr_suite(),
+        s21_strncpy_suite(),
+        s21_strcspn_suite(),
+        s21_strpbrk_suite(),
+        s21_strrchr_suite(),
+        s21_strspn_suite(),
+        s21_strstr_suite(),
+        s21_strtok_suite(),
+        NULL
+    };
     for(Suite ** current_test = tests_array; *current_test != NULL; current_test++){
         run(*current_test);
     }
