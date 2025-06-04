@@ -63,7 +63,7 @@ START_TEST(test_s21_memcmp_different_length){
     const char *str1 = "Hello";
     const char *str2 = "HelloYaHello";
 
-    s21_size_t n = 10;
+    s21_size_t n = 5;
 
     int result = s21_memcmp(str1, str2, n);
     int expected_result = memcmp(str1, str2, n);
@@ -75,15 +75,19 @@ START_TEST(test_s21_memcmp_different_length){
 
 
 Suite *s21_memcmp_suite(){
-    Suite *s = suite_create("memcpy_suite");
-    TCase *tc = tcase_create("memchr_tcs");
+    Suite *s = suite_create("memcmp_suite");
+    TCase *tc = tcase_create("memcmp_tcs");
 
-    tcase_add_test(test_s21_memcmp_normal_equal);
-    tcase_add_test(test_s21_memcmp_normal_not_equal);
-    tcase_add_test(test_s21_memcmp_zero_length);
-    tcase_add_test(test_s21_memcmp_equal_pointers);
-    tcase_add_test(test_s21_memcmp_different_length);
+    tcase_add_test(tc, test_s21_memcmp_normal_equal);
+    tcase_add_test(tc, test_s21_memcmp_normal_not_equal);
+    tcase_add_test(tc, test_s21_memcmp_zero_length);
+    tcase_add_test(tc, test_s21_memcmp_equal_pointers);
+    tcase_add_test(tc, test_s21_memcmp_different_length);
+
+    suite_add_tcase(s, tc);
+    return s;
 }
+
 
 
 

@@ -68,8 +68,8 @@ START_TEST(test_s21_memchr_intstr){
     int array[] = {10,15,20,25,30};
     int c = 15;
     s21_size_t n = 5 * sizeof(int);
-    void * result = s21_memchr(str, c, n);
-    void * expected_result = memchr(str, c, n);
+    void * result = s21_memchr(array, c, n);
+    void * expected_result = memchr(array, c, n);
     ck_assert_ptr_eq(result, expected_result);
 }END_TEST
 

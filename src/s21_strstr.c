@@ -4,7 +4,7 @@
 char * s21_strstr(const char * haystack, const char * needle){
     s21_size_t needle_len = s21_strlen(needle);
     if ( needle_len == 0){
-        return haystack;
+        return (char*)haystack;
     }
     char * position = s21_strpbrk(haystack, needle);
     

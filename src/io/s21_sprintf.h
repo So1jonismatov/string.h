@@ -1,30 +1,29 @@
+#ifndef S21_SPRINTF
+#define S21_SPRINTF
 
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stdlib.h>
-
-#ifndef SPRINTF
-#define SPRINTF
 
 
-struct Format_Spec {
-    bool optional;      // For sscanf (*)
-    bool minus;         // Flag: -
-    bool plus;          // Flag: +
-    bool space;         // Flag: (space)
-    int width;
-    int precision;      // .number
-    short length;       // h: -1, l: 1
-    char specifier;
-    bool isPercent;
-};
+typedef struct Sprintf_format_spec {
+    // bool optional; // This field was removed as it was unused.
+    bool minus;      
+    bool plus;       
+    bool space;      
+    int width;       
+    int precision;   
+    short length;    
+    char specifier;  
+    bool isPercent;  
+} Sprintf_format_spec;
 
 
-char *s21_stoi(char *str, int *number, int base);
-char *s21_itoa(long num, char *buf, int base);
-char *s21_ftoa(double num, char *buf, int precision);
-char *parse_format(Format_Spec *fs, char *format);
+char *s21_sprintf_parse_int(char *str, int *number);
+char *s21_sprintf_itoa(long long num, char *buf, int base);
+char *s21_sprintf_ftoa(double num, char *buf, int precision);
+char *sprintf_parse_format_spec(Sprintf_format_spec *fs, char *format);
+
+
 int s21_sprintf(char *str, const char *format, ...);
-
 
 #endif
