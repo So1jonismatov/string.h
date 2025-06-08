@@ -22,6 +22,8 @@ void run_tests(){
         s21_strspn_suite(),
         s21_strstr_suite(),
         s21_strtok_suite(),
+        s21_io_suite(),
+        s21_specials_suite(),
         NULL
     };
     for(Suite ** current_test = tests_array; *current_test != NULL; current_test++){
@@ -30,7 +32,7 @@ void run_tests(){
 }
 
 void run(Suite *test){
-    int fail_count = 0;
+    //int fail_count = 0;
     static int test_count = 1;
 
     if(test_count > 1) putchar('\n');

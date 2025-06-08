@@ -1,8 +1,10 @@
 #include "../s21_string.h"
 #include "./s21_sscanf.h"
+#include <stdarg.h>
+#include <stdlib.h>
 
 
-
+// s21_stoi remains unchanged
 char *s21_stoi(char *str, int *number) {
     *number = 0;
     int sign = 1;
@@ -18,6 +20,7 @@ char *s21_stoi(char *str, int *number) {
     return str;
 }
 
+// s21_stof remains unchanged
 char *s21_stof(char *str, double *number) {
     *number = 0;
     int sign = 1;
@@ -64,6 +67,7 @@ char *s21_stof(char *str, double *number) {
     return str;
 }
 
+// parse_format remains unchanged
 char *parse_format(struct Format_Spec *fs, char *format) {
     if (!*format) return S21_NULL;
     while (*format && *format != '%') format++;
@@ -81,7 +85,6 @@ char *parse_format(struct Format_Spec *fs, char *format) {
     fs->hash = false;
     fs->zero = false;
 
-    // Parse flags
     while (*format == '-' || *format == '+' || *format == ' ' || *format == '#' || *format == '0') {
         if (*format == '-') fs->minus = true;
         else if (*format == '+') fs->plus = true;
@@ -131,6 +134,7 @@ char *parse_format(struct Format_Spec *fs, char *format) {
 }
 
 int s21_sscanf(const char *str, const char *format, ...) {
+    if (!str || !format) return -1;
     va_list args_ptr;
     va_start(args_ptr, format);
     struct Format_Spec *fs = malloc(sizeof(struct Format_Spec));
@@ -138,96 +142,169 @@ int s21_sscanf(const char *str, const char *format, ...) {
     char *fstr = (char *)format;
     char *input = (char *)str;
     int assigned = 0;
+    int initial_assigned = 0; // To handle %n correctly
 
-    while (*fstr && *input) {
-        char *prev_input = input;
+    while (*fstr) {
+        if (*fstr != '%') {
+            if (*input == *fstr) {
+                input++;
+                fstr++;
+            } else {
+                while (*input == ' ' || *input == '\t' || *input == '\n') input++;
+                if (*input == *fstr) {
+                    input++;
+                    fstr++;
+                } else {
+                    break; // Exit loop on mismatch
+                }
+            }
+            continue;
+        }
+
+        char *prev_fstr = fstr;
         fstr = parse_format(fs, fstr);
-        if (!fstr) break;
+        if (!fstr || fstr == prev_fstr) break; // Exit loop on parse failure
 
-        // Skip whitespace for all except %c (without width)
-        if (fs->width == 0 && fs->specifier != 'c') {
+        // Skip leading whitespace for all specifiers except 'c', '[', and 'n'
+        if (fs->specifier != 'c' && fs->specifier != 'n' && fs->specifier != '[') {
             while (*input == ' ' || *input == '\t' || *input == '\n' ||
                    *input == '\v' || *input == '\f' || *input == '\r') {
                 input++;
             }
         }
+        
+        if (!*input && fs->specifier != 'n' && fs->specifier != '%') {
+            break; // Exit loop if input ends and not a special case
+        }
 
         if (fs->isPercent) {
-            if (*input == '%') input++;
+            if (*input == '%') {
+                input++;
+            } else {
+                break; // Exit loop on mismatch
+            }
             continue;
         }
 
-        int chars_read = 0;
-        char temp[256] = {0};
-
+        initial_assigned = assigned;
+        
         switch (fs->specifier) {
             case 'c': {
-                if (fs->width == 0) fs->width = 1;
-                for (int i = 0; i < fs->width && *input; i++, input++) {
-                    temp[i] = *input;
-                }
+                if (!fs->width) fs->width = 1;
                 if (!fs->optional) {
-                    *(va_arg(args_ptr, char *)) = temp[0];
-                    assigned++;
+                    char *dest = va_arg(args_ptr, char *);
+                    int count = 0;
+                    while (*input && count < fs->width) {
+                        *dest++ = *input++;
+                        count++;
+                    }
+                    if (count > 0) assigned++;
+                } else {
+                    int count = 0;
+                    while (*input && count < fs->width) {
+                        input++;
+                        count++;
+                    }
                 }
                 break;
             }
             case 'd': {
-                int num = 0;
-                char *start = input;
-                // Check for required sign if + flag is set
-                if (fs->plus && (*input != '+' && *input != '-')) break;
-                // Allow space before number if space flag is set and no sign
-                if (fs->space && *input == ' ' && (*(input + 1) >= '0' || *(input + 1) == '+' || *(input + 1) == '-')) {
-                    input++;
+                char temp_num[512] = {0};
+                int i = 0;
+                char *start_ptr = input;
+                
+                if ((*input == '+' || *input == '-') && (fs->width == 0 || i < fs->width)) {
+                    temp_num[i++] = *input++;
                 }
-                input = s21_stoi(input, &num);
-                if (fs->width > 0 && (input - start) > fs->width) input = start + fs->width;
-                if (input == start) break;
-                if (!fs->optional) {
-                    if (fs->length == -2) *(va_arg(args_ptr, char *)) = (char)num;
-                    else if (fs->length == -1) *(va_arg(args_ptr, short *)) = (short)num;
-                    else if (fs->length == 1) *(va_arg(args_ptr, long *)) = (long)num;
-                    else if (fs->length == 2) *(va_arg(args_ptr, long long *)) = num;
-                    else *(va_arg(args_ptr, int *)) = num;
-                    assigned++;
+                
+                while (*input >= '0' && *input <= '9' && (fs->width == 0 || i < fs->width)) {
+                    temp_num[i++] = *input++;
+                }
+
+                if (i > 0 && ((temp_num[0] >= '0' && temp_num[0] <= '9') || i > 1)) {
+                    if (!fs->optional) {
+                        int num;
+                        s21_stoi(temp_num, &num);
+                        if (fs->length == -2) *(va_arg(args_ptr, signed char *)) = (signed char)num;
+                        else if (fs->length == -1) *(va_arg(args_ptr, short *)) = (short)num;
+                        else if (fs->length == 1) *(va_arg(args_ptr, long *)) = (long)num;
+                        else if (fs->length == 2) *(va_arg(args_ptr, long long *)) = (long long)num;
+                        else *(va_arg(args_ptr, int *)) = num;
+                        assigned++;
+                    }
+                } else {
+                    input = start_ptr;
+                    break; // Exit loop on invalid input
                 }
                 break;
             }
-            case 'f': {
-                double num = 0;
-                char *start = input;
-                // Check for required sign if + flag is set
-                if (fs->plus && (*input != '+' && *input != '-')) break;
-                // Allow space before number if space flag is set and no sign
-                if (fs->space && *input == ' ' && (*(input + 1) >= '0' || *(input + 1) == '+' || *(input + 1) == '-')) {
-                    input++;
+            case 'f':
+            case 'e':
+            case 'E':
+            case 'g':
+            case 'G': {
+                char temp_num[512] = {0};
+                int i = 0;
+                char* start_ptr = input;
+
+                if ((*input == '+' || *input == '-') && (fs->width == 0 || i < fs->width)) {
+                    temp_num[i++] = *input++;
                 }
-                input = s21_stof(input, &num);
-                if (fs->width > 0 && (input - start) > fs->width) input = start + fs->width;
-                // Handle # flag for decimal point requirement
-                if (fs->hash && *start != '.' && num != (int)num) break; // Expect decimal if # and fractional
-                if (input == start) break;
-                if (!fs->optional) {
-                    if (fs->length == 3) *(va_arg(args_ptr, long double *)) = num;
-                    else if (fs->length == 1) *(va_arg(args_ptr, double *)) = num;
-                    else *(va_arg(args_ptr, float *)) = (float)num;
-                    assigned++;
+                while (*input >= '0' && *input <= '9' && (fs->width == 0 || i < fs->width)) {
+                    temp_num[i++] = *input++;
+                }
+                if (*input == '.' && (fs->width == 0 || i < fs->width)) {
+                    temp_num[i++] = *input++;
+                    while (*input >= '0' && *input <= '9' && (fs->width == 0 || i < fs->width)) {
+                        temp_num[i++] = *input++;
+                    }
+                }
+                if ((*input == 'e' || *input == 'E') && (fs->width == 0 || i < fs->width)) {
+                    temp_num[i++] = *input++;
+                    if ((*input == '+' || *input == '-') && (fs->width == 0 || i < fs->width)) {
+                        temp_num[i++] = *input++;
+                    }
+                    while (*input >= '0' && *input <= '9' && (fs->width == 0 || i < fs->width)) {
+                        temp_num[i++] = *input++;
+                    }
+                }
+
+                if (i > 0 && ((temp_num[0] >= '0' && temp_num[0] <= '9') || i > 1)) {
+                    if (!fs->optional) {
+                        double num;
+                        s21_stof(temp_num, &num);
+                        if (fs->length == 3) *(va_arg(args_ptr, long double *)) = num;
+                        else if (fs->length == 1) *(va_arg(args_ptr, double *)) = num;
+                        else *(va_arg(args_ptr, float *)) = (float)num;
+                        assigned++;
+                    }
+                } else {
+                    input = start_ptr;
+                    break; // Exit loop on invalid input
                 }
                 break;
             }
             case 's': {
-                int i = 0;
-                while (*input && (*input != ' ' && *input != '\t' && *input != '\n' &&
-                                  *input != '\v' && *input != '\f' && *input != '\r') &&
-                       (fs->width == 0 || i < fs->width)) {
-                    temp[i++] = *input++;
-                }
-                temp[i] = '\0';
-                if (i == 0) break;
                 if (!fs->optional) {
-                    s21_strcpy(va_arg(args_ptr, char *), temp);
-                    assigned++;
+                    char *dest = va_arg(args_ptr, char *);
+                    int i = 0;
+                    while (*input && (*input != ' ' && *input != '\t' && *input != '\n' &&
+                                    *input != '\v' && *input != '\f' && *input != '\r') &&
+                           (fs->width == 0 || i < fs->width)) {
+                        dest[i++] = *input++;
+                    }
+                    if (i > 0) {
+                        dest[i] = '\0';
+                        assigned++;
+                    }
+                } else {
+                    int i = 0;
+                    while (*input && (*input != ' ' && *input != '\t' && *input != '\n' &&
+                                    *input != '\v' && *input != '\f' && *input != '\r') &&
+                           (fs->width == 0 || i < fs->width)) {
+                        input++;
+                        i++;
+                    }
                 }
                 break;
             }
@@ -235,13 +312,18 @@ int s21_sscanf(const char *str, const char *format, ...) {
                 if (!fs->optional) {
                     *(va_arg(args_ptr, int *)) = (int)(input - str);
                 }
-                continue;
+                break; // 'n' does not count as an assignment
             }
+            default:
+                break; // Exit loop on unsupported specifier
         }
-        if (input == prev_input) break;
+
+        if (initial_assigned == assigned && fs->specifier != 'n') {
+            break; // Exit loop if no assignment and not 'n'
+        }
     }
 
     va_end(args_ptr);
     free(fs);
-    return assigned;
+    return assigned? assigned : -1;
 }

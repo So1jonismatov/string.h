@@ -16,6 +16,8 @@ Suite *s21_strrchr_suite();
 Suite *s21_strspn_suite();
 Suite *s21_strstr_suite();
 Suite *s21_strtok_suite();
+Suite *s21_io_suite();
+Suite *s21_specials_suite();
 
 void run_tests();
 void run(Suite *test);

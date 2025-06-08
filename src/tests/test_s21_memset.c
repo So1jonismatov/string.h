@@ -5,7 +5,7 @@
 START_TEST(test_s21_memset_normal) {
     char str[5] = "abcd";
     void *result = s21_memset(str, 'x', 3);
-    ck_assert_str_eq(str, "xxxcd");
+    ck_assert_str_eq(str, "xxxd");
     ck_assert_ptr_eq(result, str);
 } END_TEST
 

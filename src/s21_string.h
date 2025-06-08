@@ -1,6 +1,7 @@
 #include <stdbool.h> 
 #include "./io/s21_sprintf.h"
 #include "./io/s21_sscanf.h"
+#include "./specials/s21_specials.h"
 #ifndef _S21_STRING
 #define _S21_STRING
 

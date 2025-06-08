@@ -13,7 +13,7 @@ START_TEST(test_s21_strncmp_different) {
     const char *str1 = "hello";
     const char *str2 = "help";
     int result = s21_strncmp(str1, str2, 4);
-    ck_assert_int_eq(result, 0);
+    ck_assert_int_eq(result, -4);
 } END_TEST
 
 START_TEST(test_s21_strncmp_null) {

@@ -1,7 +1,8 @@
-#include "s21_string.h"   
+#include "s21_string.h"  
+ 
 
 s21_size_t s21_strcspn(const char *str1, const char *str2){
-    // buni ichma ich for bilan O(n*m) usilda qilish mumkin edi lekin sal optimizatsiya qilganman, hayron qomayla
+    if (str1 == S21_NULL || str2 == S21_NULL) return 0; 
 
     bool reject[256] = {0};
     while (*str2 != '\0'){

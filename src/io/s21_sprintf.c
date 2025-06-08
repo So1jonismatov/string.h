@@ -1,6 +1,7 @@
 // s21_sprintf.c (Implementation file)
 #include "../s21_string.h" // Main library header, provides s21_strlen, S21_NULL, etc.
 #include "s21_sprintf.h"   // Internal header for this module
+#include <stdio.h>
 
 // Parses an integer from the string (base 10)
 char *s21_sprintf_parse_int(char *str, int *number) {
