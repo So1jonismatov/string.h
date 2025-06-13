@@ -9,7 +9,10 @@ int main(){
 }
 
 void run_tests(){
-    Suite * tests_array[] ={s21_memchr_suite(),s21_memcmp_suite(),s21_memcpy_suite(),
+    Suite * tests_array[] ={
+        s21_memchr_suite(),
+        s21_memcmp_suite(),
+        s21_memcpy_suite(),
         s21_memset_suite(),
         s21_strlen_suite(),
         s21_strncat_suite(),
