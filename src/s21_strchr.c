@@ -2,7 +2,6 @@
 
 char *s21_strchr(const char *str, int c) {
   if (str == S21_NULL) return S21_NULL;
-
   if ((unsigned char)c == '\0') return (char *)str + s21_strlen(str);
 
   while (*str != '\0') {
