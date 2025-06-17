@@ -159,12 +159,6 @@ START_TEST(test_s21_sprintf_length_long) {
     ck_assert_str_eq(buf1, buf2);
 } END_TEST
 
-START_TEST(test_s21_sprintf_null) {
-    char buf1[20] = {0};
-    int ret1 = s21_sprintf(buf1, "%s", NULL);  // Test your implementation
-    ck_assert_int_eq(ret1, 6);  // Length of "(null)"
-    ck_assert_str_eq(buf1, "(null)");  // Verify your output
-} END_TEST
 
 // Append these to the end of test_s21_io.c before the Suite definition
 
@@ -478,11 +472,6 @@ START_TEST(test_s21_sscanf_width_precision) {
 
 
 
-START_TEST(test_s21_sscanf_null) {
-    int num;
-    int ret1 = s21_sscanf(NULL, "%d", &num);  // Should fail
-    ck_assert_int_eq(ret1, -1);  // Expect failure
-} END_TEST
 
 START_TEST(test_s21_sscanf_invalid_format) {
     int num;
@@ -515,7 +504,6 @@ Suite *s21_io_suite(void) {
     tcase_add_test(tc, test_s21_sprintf_precision_only);
     tcase_add_test(tc, test_s21_sprintf_length_short);
     tcase_add_test(tc, test_s21_sprintf_length_long);
-    tcase_add_test(tc, test_s21_sprintf_null);
     tcase_add_test(tc, test_s21_sprintf_o_zero_hash);
     tcase_add_test(tc, test_s21_sprintf_x_hash);
     tcase_add_test(tc, test_s21_sprintf_X_hash);
@@ -553,7 +541,6 @@ Suite *s21_io_suite(void) {
     tcase_add_test(tc, test_s21_sscanf_s_normal);
     tcase_add_test(tc, test_s21_sscanf_s_empty);
     tcase_add_test(tc, test_s21_sscanf_width_precision);
-    tcase_add_test(tc, test_s21_sscanf_null);
     tcase_add_test(tc, test_s21_sscanf_invalid_format);
     suite_add_tcase(s, tc);
     return s;

@@ -1,329 +1,536 @@
-#include "../s21_string.h"
-#include "./s21_sscanf.h"
+#include "s21_string.h"
+#include <ctype.h>
+#include <limits.h>
+#include <math.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <wchar.h>
 
+char *s21_strcpy(char *destptr, const char *srcptr) {
+  int srcptrLength = s21_strlen(srcptr);
 
-// s21_stoi remains unchanged
-char *s21_stoi(char *str, int *number) {
-    *number = 0;
-    int sign = 1;
-    if (*str == '-' || (*str == '+' && *(str + 1) >= '0' && *(str + 1) <= '9')) {
-        sign = (*str == '-') ? -1 : 1;
-        str++;
-    }
-    while (*str && *str >= '0' && *str <= '9') {
-        *number = *number * 10 + (*str - '0');
-        str++;
-    }
-    *number *= sign;
-    return str;
+  for (int x = 0; x <= srcptrLength; x += 1) {
+    destptr[x] = srcptr[x];
+  }
+
+  return destptr;
 }
 
-// s21_stof remains unchanged
-char *s21_stof(char *str, double *number) {
-    *number = 0;
-    int sign = 1;
-    int esign = 1;
-    int enumber = 0;
-
-    if (*str == '-' || (*str == '+' && *(str + 1) >= '0')) {
-        sign = (*str == '-') ? -1 : 1;
-        str++;
-    }
-    while (*str && *str >= '0' && *str <= '9') {
-        *number = *number * 10 + (*str - '0');
-        str++;
-    }
-    if (*str == '.') {
-        str++;
-        double fnum = 0, tenth = 0.1;
-        while (*str && *str >= '0' && *str <= '9') {
-            fnum += (*str - '0') * tenth;
-            tenth /= 10;
-            str++;
-        }
-        *number += fnum;
-    }
-    *number *= sign;
-    if (*str == 'e' || *str == 'E') {
-        str++;
-        if (*str == '-' || (*str == '+' && *(str + 1) >= '0')) {
-            esign = (*str == '-') ? -1 : 1;
-            str++;
-        }
-        if (*str >= '0' && *str <= '9') {
-            while (*str && *str >= '0' && *str <= '9') {
-                enumber = enumber * 10 + (*str - '0');
-                str++;
-            }
-            double multiplier = 1.0;
-            for (int i = 0; i < enumber; i++) {
-                multiplier = (esign == 1) ? multiplier * 10.0 : multiplier / 10.0;
-            }
-            *number *= multiplier;
-        }
-    }
-    return str;
-}
-
-// parse_format remains unchanged
-char *parse_format(struct Format_Spec *fs, char *format) {
-    if (!*format) return S21_NULL;
-    while (*format && *format != '%') format++;
-    if (!*format) return S21_NULL;
-    format++;
-
-    fs->optional = false;
-    fs->width = 0;
-    fs->length = 0;
-    fs->specifier = 0;
-    fs->isPercent = false;
-    fs->minus = false;
-    fs->plus = false;
-    fs->space = false;
-    fs->hash = false;
-    fs->zero = false;
-
-    while (*format == '-' || *format == '+' || *format == ' ' || *format == '#' || *format == '0') {
-        if (*format == '-') fs->minus = true;
-        else if (*format == '+') fs->plus = true;
-        else if (*format == ' ') fs->space = true;
-        else if (*format == '#') fs->hash = true;
-        else if (*format == '0') fs->zero = true;
-        format++;
-    }
-
-    if (*format == '*') {
-        fs->optional = true;
-        format++;
-    }
-
-    int number = 0;
-    if (*format >= '0' && *format <= '9') {
-        format = s21_stoi(format, &number);
-        fs->width = number;
-    }
-
-    if (*format == 'h' && *(format + 1) == 'h') {
-        fs->length = -2;
-        format += 2;
-    } else if (*format == 'h') {
-        fs->length = -1;
-        format++;
-    } else if (*format == 'l' && *(format + 1) == 'l') {
-        fs->length = 2;
-        format += 2;
-    } else if (*format == 'l') {
-        fs->length = 1;
-        format++;
-    } else if (*format == 'L') {
-        fs->length = 3;
-        format++;
-    }
-
-    if (*format == '%') {
-        fs->isPercent = true;
-    } else if (*format) {
-        fs->specifier = *format;
-    } else {
-        return S21_NULL;
-    }
-    format++;
-    return format;
-}
 
 int s21_sscanf(const char *str, const char *format, ...) {
-    if (!str || !format) return -1;
-    va_list args_ptr;
-    va_start(args_ptr, format);
-    struct Format_Spec *fs = malloc(sizeof(struct Format_Spec));
-    if (!fs) return -1;
-    char *fstr = (char *)format;
-    char *input = (char *)str;
-    int assigned = 0;
-    int initial_assigned = 0; // To handle %n correctly
 
-    while (*fstr) {
-        if (*fstr != '%') {
-            if (*input == *fstr) {
-                input++;
-                fstr++;
-            } else {
-                while (*input == ' ' || *input == '\t' || *input == '\n') input++;
-                if (*input == *fstr) {
-                    input++;
-                    fstr++;
-                } else {
-                    break; // Exit loop on mismatch
-                }
-            }
-            continue;
+  int res = 0;
+  ops options = {0, 0, 0, 0, 0, 0, 0, '\0'};
+  char *tmp = malloc((s21_strlen(str) + 1) * sizeof(char));
+  if (!tmp) {
+    printf("ERROR");
+  } else {
+    tmp = s21_strcpy(tmp, str);
+    oksym(&tmp, &options);
+    if (!*tmp) options.end = 1;
+    tmp = s21_strcpy(tmp - options.count, str);
+    options.count = 0;
+    va_list args;
+    va_start(args, format);
+    for (; *format; format++) {
+      if (optionsin(&tmp, &options, format)) continue;
+      if (options.format) {
+        if ((int)*format > 47 && (int)*format < 58) {
+          options.wid = options.wid * 10 + (int)*format - 48;
+          continue;
         }
-
-        char *prev_fstr = fstr;
-        fstr = parse_format(fs, fstr);
-        if (!fstr || fstr == prev_fstr) break; // Exit loop on parse failure
-
-        // Skip leading whitespace for all specifiers except 'c', '[', and 'n'
-        if (fs->specifier != 'c' && fs->specifier != 'n' && fs->specifier != '[') {
-            while (*input == ' ' || *input == '\t' || *input == '\n' ||
-                   *input == '\v' || *input == '\f' || *input == '\r') {
-                input++;
-            }
-        }
-        
-        if (!*input && fs->specifier != 'n' && fs->specifier != '%') {
-            break; // Exit loop if input ends and not a special case
-        }
-
-        if (fs->isPercent) {
-            if (*input == '%') {
-                input++;
-            } else {
-                break; // Exit loop on mismatch
-            }
-            continue;
-        }
-
-        initial_assigned = assigned;
-        
-        switch (fs->specifier) {
-            case 'c': {
-                if (!fs->width) fs->width = 1;
-                if (!fs->optional) {
-                    char *dest = va_arg(args_ptr, char *);
-                    int count = 0;
-                    while (*input && count < fs->width) {
-                        *dest++ = *input++;
-                        count++;
-                    }
-                    if (count > 0) assigned++;
-                } else {
-                    int count = 0;
-                    while (*input && count < fs->width) {
-                        input++;
-                        count++;
-                    }
-                }
-                break;
-            }
-            case 'd': {
-                char temp_num[512] = {0};
-                int i = 0;
-                char *start_ptr = input;
-                
-                if ((*input == '+' || *input == '-') && (fs->width == 0 || i < fs->width)) {
-                    temp_num[i++] = *input++;
-                }
-                
-                while (*input >= '0' && *input <= '9' && (fs->width == 0 || i < fs->width)) {
-                    temp_num[i++] = *input++;
-                }
-
-                if (i > 0 && ((temp_num[0] >= '0' && temp_num[0] <= '9') || i > 1)) {
-                    if (!fs->optional) {
-                        int num;
-                        s21_stoi(temp_num, &num);
-                        if (fs->length == -2) *(va_arg(args_ptr, signed char *)) = (signed char)num;
-                        else if (fs->length == -1) *(va_arg(args_ptr, short *)) = (short)num;
-                        else if (fs->length == 1) *(va_arg(args_ptr, long *)) = (long)num;
-                        else if (fs->length == 2) *(va_arg(args_ptr, long long *)) = (long long)num;
-                        else *(va_arg(args_ptr, int *)) = num;
-                        assigned++;
-                    }
-                } else {
-                    input = start_ptr;
-                    break; // Exit loop on invalid input
-                }
-                break;
-            }
-            case 'f':
-            case 'e':
-            case 'E':
-            case 'g':
-            case 'G': {
-                char temp_num[512] = {0};
-                int i = 0;
-                char* start_ptr = input;
-
-                if ((*input == '+' || *input == '-') && (fs->width == 0 || i < fs->width)) {
-                    temp_num[i++] = *input++;
-                }
-                while (*input >= '0' && *input <= '9' && (fs->width == 0 || i < fs->width)) {
-                    temp_num[i++] = *input++;
-                }
-                if (*input == '.' && (fs->width == 0 || i < fs->width)) {
-                    temp_num[i++] = *input++;
-                    while (*input >= '0' && *input <= '9' && (fs->width == 0 || i < fs->width)) {
-                        temp_num[i++] = *input++;
-                    }
-                }
-                if ((*input == 'e' || *input == 'E') && (fs->width == 0 || i < fs->width)) {
-                    temp_num[i++] = *input++;
-                    if ((*input == '+' || *input == '-') && (fs->width == 0 || i < fs->width)) {
-                        temp_num[i++] = *input++;
-                    }
-                    while (*input >= '0' && *input <= '9' && (fs->width == 0 || i < fs->width)) {
-                        temp_num[i++] = *input++;
-                    }
-                }
-
-                if (i > 0 && ((temp_num[0] >= '0' && temp_num[0] <= '9') || i > 1)) {
-                    if (!fs->optional) {
-                        double num;
-                        s21_stof(temp_num, &num);
-                        if (fs->length == 3) *(va_arg(args_ptr, long double *)) = num;
-                        else if (fs->length == 1) *(va_arg(args_ptr, double *)) = num;
-                        else *(va_arg(args_ptr, float *)) = (float)num;
-                        assigned++;
-                    }
-                } else {
-                    input = start_ptr;
-                    break; // Exit loop on invalid input
-                }
-                break;
-            }
-            case 's': {
-                if (!fs->optional) {
-                    char *dest = va_arg(args_ptr, char *);
-                    int i = 0;
-                    while (*input && (*input != ' ' && *input != '\t' && *input != '\n' &&
-                                    *input != '\v' && *input != '\f' && *input != '\r') &&
-                           (fs->width == 0 || i < fs->width)) {
-                        dest[i++] = *input++;
-                    }
-                    if (i > 0) {
-                        dest[i] = '\0';
-                        assigned++;
-                    }
-                } else {
-                    int i = 0;
-                    while (*input && (*input != ' ' && *input != '\t' && *input != '\n' &&
-                                    *input != '\v' && *input != '\f' && *input != '\r') &&
-                           (fs->width == 0 || i < fs->width)) {
-                        input++;
-                        i++;
-                    }
-                }
-                break;
-            }
-            case 'n': {
-                if (!fs->optional) {
-                    *(va_arg(args_ptr, int *)) = (int)(input - str);
-                }
-                break; // 'n' does not count as an assignment
-            }
-            default:
-                break; // Exit loop on unsupported specifier
-        }
-
-        if (initial_assigned == assigned && fs->specifier != 'n') {
-            break; // Exit loop if no assignment and not 'n'
-        }
+        res += processformat(args, &options, &tmp, format);
+      } else {
+        casenon(&tmp, &options, format);
+      }
+      if (isbreak(args, &options, &tmp, format)) {
+        if (!res && options.end) res = -1;
+        break;
+      }
     }
+    free(tmp - options.count);
+    va_end(args);
+  }
+  return res;
+}
 
-    va_end(args_ptr);
-    free(fs);
-    return assigned? assigned : -1;
+long s21_atoi(char *str, char **strlim, int base) {
+  char *start = str;
+  long int res = 0;
+  int sign = 1;
+  while (*str == ' ' || *str == '\n' || *str == '\t' || *str == '\r' ||
+         *str == '\x0B' || *str == '\f')
+    str++;
+  if (*str == '+') str++;
+  if (*str == '-') {
+    sign = -1;
+    str++;
+  }
+  if (base == 0 && *str == '0' && *(str + 1) == 'x')
+    base = 16;
+  else if (base == 0 && *str == '0')
+    base = 8;
+  else if (base == 0)
+    base = 10;
+  if (base == 16 && *str == '0' && *(str + 1) == 'x') str += 2;
+  if (base == 10) {
+    for (; *str >= '0' && *str <= '9'; str++, res *= 10) res += *str - 48;
+    res /= 10;
+  } else if (base == 8) {
+    for (; *str >= '0' && *str <= '9'; str++, res *= 8) res += *str - 48;
+    res /= 8;
+  } else if (base == 16) {
+    for (; (*str >= '0' && *str <= '9') || (*str >= 'A' && *str <= 'F') ||
+           (*str >= 'a' && *str <= 'f');
+         str++, res *= 16) {
+      if (*str >= '0' && *str <= '9')
+        res += *str - 48;
+      else if ((*str >= 'A' && *str <= 'F'))
+        res += +*str - 55;
+      else
+        res += +*str - 87;
+    }
+    res /= 16;
+  }
+  if (strlim) *strlim = start + (str - start);
+  return sign * res;
+}
+
+unsigned long s21_atoul(char *str, char **strlim, int base) {
+  return s21_atoi(str, strlim, base);
+}
+
+float s21_atof(char *str, char **strlim) {
+  char *start = str;
+  float a, decplace, b;
+  int sign = 1;
+  while (*str == ' ' || *str == '\n' || *str == '\t' || *str == '\r' ||
+         *str == '\x0B' || *str == '\f')
+    ++str;
+  if (*str == '+') ++str;
+  if (*str == '-') {
+    sign = -1;
+    ++str;
+  }
+  for (a = 0; *str && isdigit(*str); ++str) a = a * 10 + (*str - '0');
+  if (*str == '.') ++str;
+  for (decplace = 1.; *str && isdigit(*str); ++str, decplace *= 10.)
+    a = a * 10. + (*str - '0');
+  if (*str == 'e' || *str == 'E') {
+    int esign = 1;
+    if (a <= 1e-6) a = 1;
+    ++str;
+    if (*str == '-') {
+      esign = -1;
+      ++str;
+    }
+    if (*str == '+') ++str;
+    for (b = 0; *str && isdigit(*str); ++str) b = b * 10 + (*str - '0');
+    b *= esign;
+  } else {
+    b = 0;
+  }
+  if ((*str == 'n' || *str == 'N') && (str[1] == 'a' || str[1] == 'A') &&
+      (str[2] == 'n' || str[2] == 'N')) {
+    str += 3;
+    a = NAN * sign;
+  }
+  if ((*str == 'i' || *str == 'I') && (str[1] == 'n' || str[1] == 'N') &&
+      (str[2] == 'f' || str[2] == 'F')) {
+    str += 3;
+    a = INFINITY * sign;
+  }
+  if (strlim) *strlim = start + (str - start);
+  return (isnan(a) || isinf(a)) ? a : (a * sign / decplace) * powl(10, b);
+}
+
+double s21_atod(char *str, char **strlim) {
+  char *start = str;
+  double a, decplace, b;
+  int sign = 1;
+  while (*str == ' ' || *str == '\n' || *str == '\t' || *str == '\r' ||
+         *str == '\x0B' || *str == '\f')
+    ++str;
+  if (*str == '+') ++str;
+  if (*str == '-') {
+    sign = -1;
+    ++str;
+  }
+  for (a = 0; *str && isdigit(*str); ++str) a = a * 10 + (*str - '0');
+  if (*str == '.') ++str;
+  for (decplace = 1.; *str && isdigit(*str); ++str, decplace *= 10.)
+    a = a * 10. + (*str - '0');
+  if (*str == 'e' || *str == 'E') {
+    int esign = 1;
+    if (a <= 1e-6) a = 1;
+    ++str;
+    if (*str == '-') {
+      esign = -1;
+      ++str;
+    }
+    if (*str == '+') ++str;
+    for (b = 0; *str && isdigit(*str); ++str) b = b * 10 + (*str - '0');
+    b *= esign;
+  } else {
+    b = 0;
+  }
+  if ((*str == 'n' || *str == 'N') && (str[1] == 'a' || str[1] == 'A') &&
+      (str[2] == 'n' || str[2] == 'N')) {
+    str += 3;
+    a = NAN * sign;
+  }
+  if ((*str == 'i' || *str == 'I') && (str[1] == 'n' || str[1] == 'N') &&
+      (str[2] == 'f' || str[2] == 'F')) {
+    str += 3;
+    a = INFINITY * sign;
+  }
+  if (strlim) *strlim = start + (str - start);
+  return (isnan(a) || isinf(a)) ? a : (a * sign / decplace) * powl(10, b);
+}
+
+long double s21_atold(char *str, char **strlim) {
+  char *start = str;
+  long double a, decplace, b;
+  int sign = 1;
+  while (*str == ' ' || *str == '\n' || *str == '\t' || *str == '\r' ||
+         *str == '\x0B' || *str == '\f')
+    ++str;
+  if (*str == '+') ++str;
+  if (*str == '-') {
+    sign = -1;
+    ++str;
+  }
+  for (a = 0; *str && isdigit(*str); ++str) a = a * 10 + (*str - '0');
+  if (*str == '.') ++str;
+  for (decplace = 1.; *str && isdigit(*str); ++str, decplace *= 10.)
+    a = a * 10. + (*str - '0');
+  if (*str == 'e' || *str == 'E') {
+    int esign = 1;
+    if (a <= 1e-6) a = 1;
+    ++str;
+    if (*str == '-') {
+      esign = -1;
+      ++str;
+    }
+    if (*str == '+') ++str;
+    for (b = 0; *str && isdigit(*str); ++str) b = b * 10 + (*str - '0');
+    b *= esign;
+  } else {
+    b = 0;
+  }
+  if ((*str == 'n' || *str == 'N') && (str[1] == 'a' || str[1] == 'A') &&
+      (str[2] == 'n' || str[2] == 'N')) {
+    str += 3;
+    a = NAN * sign;
+  }
+  if ((*str == 'i' || *str == 'I') && (str[1] == 'n' || str[1] == 'N') &&
+      (str[2] == 'f' || str[2] == 'F')) {
+    str += 3;
+    a = INFINITY * sign;
+  }
+  if (strlim) *strlim = start + (str - start);
+  return (isnan(a) || isinf(a)) ? a : (a * sign / decplace) * powl(10, b);
+}
+
+int opd(va_list args, ops *op, char **src, int base) {
+  int res = 0;
+  char *strlim;
+  check_buffer(src, op);
+  if (s21_atoi(*src, S21_NULL, base) ||
+      *(*src + s21_strspn(*src, "\n\t \f\x0B\r+-")) == '0') {
+    if (!op->supr) {
+      res++;
+      if (op->len == 1)
+        *(short int *)va_arg(args, void *) = s21_atoi(*src, &strlim, base);
+      else if (op->len == 2)
+        *(long int *)va_arg(args, void *) = s21_atoi(*src, &strlim, base);
+      else
+        *(int *)va_arg(args, void *) = s21_atoi(*src, &strlim, base);
+    } else {
+      s21_atoi(*src, &strlim, base);
+    }
+    op->count += strlim - *src;
+    *src = strlim;
+  } else {
+    op->err = 1;
+  }
+  op->format = 0;
+  return res;
+}
+
+int opu(va_list args, ops *op, char **src, int base) {
+  int res = 0;
+  char *strlim;
+  check_buffer(src, op);
+  if (s21_atoul(*src, S21_NULL, base) ||
+      *(*src + s21_strspn(*src, "\n\t \f\x0B\r+")) == '0') {
+    if (!op->supr) {
+      if (s21_atoul(*src, S21_NULL, base) || **src == '0') res++;
+      if (op->len == 1)
+        *(short unsigned *)va_arg(args, void *) =
+            s21_atoul(*src, &strlim, base);
+      else if (op->len == 2)
+        *(long unsigned *)va_arg(args, void *) = s21_atoul(*src, &strlim, base);
+      else
+        *(unsigned *)va_arg(args, void *) = s21_atoul(*src, &strlim, base);
+    } else {
+      s21_atoul(*src, &strlim, base);
+    }
+    op->count += strlim - *src;
+    *src = strlim;
+  } else {
+    op->err = 1;
+  }
+  op->format = 0;
+  return res;
+}
+
+int opf(va_list args, ops *op, char **src) {
+  int res = 0;
+  char *strlim;
+  check_buffer(src, op);
+  if (fabs(s21_atod(*src, S21_NULL)) >= 1e-100 ||
+      isnan(s21_atod(*src, S21_NULL)) ||
+      *(*src + s21_strspn(*src, "\n\t \f\x0B\r+-")) == '0') {
+    if (!op->supr) {
+      res++;
+      if (op->len == 3)
+        *(long double *)va_arg(args, void *) = s21_atold(*src, &strlim);
+      else if (op->len == 2)
+        *(double *)va_arg(args, void *) = s21_atod(*src, &strlim);
+      else
+        *(float *)va_arg(args, void *) = s21_atof(*src, &strlim);
+    } else {
+      s21_atof(*src, &strlim);
+    }
+    op->count += strlim - *src;
+    *src = strlim;
+  } else {
+    op->err = 1;
+  }
+  op->format = 0;
+  return res;
+}
+
+int opp(va_list args, ops *op, char **src) {
+  int res = 0;
+  char *strlim;
+  if (s21_atoul(*src, S21_NULL, 16) ||
+      *(*src + s21_strspn(*src, "\n\t \f\x0B\r+-")) == '0') {
+    check_buffer(src, op);
+    if (!op->supr) {
+      if (s21_atoul(*src, S21_NULL, 16) || **src == '0') res++;
+      *(void **)va_arg(args, void **) = (void *)s21_atoul(*src, &strlim, 16);
+    } else {
+      s21_atoul(*src, &strlim, 16);
+    }
+    op->count += strlim - *src;
+    *src = strlim;
+  } else {
+    op->err = 1;
+  }
+  op->format = 0;
+  return res;
+}
+
+int opc(va_list args, ops *op, char **src) {
+  int res = 0;
+  if (!op->wid) op->wid = 2;
+  if (!op->supr) {
+    res++;
+    if (op->len == 2)
+      mbtowc((wchar_t *)va_arg(args, wchar_t *), *src, op->wid);
+    else
+      *(char *)va_arg(args, char *) = **src;
+  }
+  if (**src < 0 && op->len == 2) {
+    (*src)++;
+    op->count++;
+  }
+  (*src)++;
+  op->count++;
+  op->format = 0;
+  return res;
+}
+
+int opst(va_list args, ops *op, char **src) {
+  int res = 0;
+  char *new_str = malloc(sizeof(char));
+  if (new_str) {
+    oksym(src, op);
+    int i = 0;
+    for (; **src && **src != ' ' && **src != '\n' && **src != '\t' &&
+           **src != '\r' && **src != '\x0B' && **src != '\f' &&
+           (op->wid == 0 || i < op->wid);
+         i++, (*src)++) {
+      new_str[i] = **src;
+      new_str = realloc(new_str, (i + 2) * sizeof(char));
+      if (!new_str) exit(0);
+    }
+    new_str[i] = '\0';
+    int k = s21_strlen(new_str) + 1;
+    va_list tmp_list;
+    va_copy(tmp_list, args);
+    for (int j = 0; j < k; j++) {
+      if (!op->supr) {
+        if (!op->len) *((char *)va_arg(tmp_list, char *) + j) = new_str[j];
+        if (j + 1 < k) {
+          va_end(tmp_list);
+          va_copy(tmp_list, args);
+        }
+      }
+    }
+    va_end(args);
+    va_copy(args, tmp_list);
+    if (op->len == 2 && !op->supr)
+      mbstowcs((wchar_t *)va_arg(args, wchar_t *), new_str, k);
+    free(new_str);
+    if (!op->supr) res++;
+    op->count += k - 1;
+    op->format = 0;
+    va_end(tmp_list);
+  }
+  return res;
+}
+
+void oksym(char **src, ops *op) {
+  while (**src == ' ' || **src == '\n' || **src == '\t' || **src == '\r' ||
+         **src == '\x0B' || **src == '\f') {
+    (*src)++;
+    op->count++;
+  }
+}
+
+void oppe(char **src, ops *op, const char *format) {
+  oksym(src, op);
+  if (*format == **src) {
+    op->count++;
+    (*src)++;
+  } else {
+    op->err = 1;
+  }
+  op->format = 0;
+}
+
+int optionsin(char **src, ops *op, const char *format) {
+  int res = 0;
+  if (*format == '%' && !op->format) {
+    res++;
+    op->format = 1;
+    op->supr = 0;
+    op->len = 0;
+    if (op->buff) {
+      *(*src + s21_strlen(*src)) = op->buff;
+      op->buff = '\0';
+    }
+    op->wid = 0;
+  }
+  return res;
+}
+
+void opn(va_list args, ops *op) {
+  if (!op->supr) {
+    if (op->len == 1)
+      *(short int *)va_arg(args, void *) = op->count;
+    else if (op->len == 2)
+      *(long int *)va_arg(args, void *) = op->count;
+    else
+      *(int *)va_arg(args, void *) = op->count;
+  }
+  op->format = 0;
+}
+
+void casenon(char **src, ops *op, const char *format) {
+  if (*format == ' ' || *format == '\t' || *format == '\n' || *format == '\r' ||
+      *format == '\x0B') {
+    while (*format == **src) {
+      (*src)++;
+      op->count++;
+    }
+  } else if (**src == *format) {
+    (*src)++;
+    op->count++;
+  } else {
+    op->err = 1;
+  }
+}
+
+int isbreak(va_list args, ops *op, char **src, const char *format) {
+  int res = 0;
+  va_list backup;
+  va_copy(backup, args);
+  if ((!**src && !op->buff &&
+       (s21_strstr(format, "%n") != s21_strchr(format, '%') ||
+        !s21_strstr(format, "%n"))) ||
+      !va_arg(backup, void *) || op->err) {
+    res = 1;
+  }
+  va_end(backup);
+  return res;
+}
+
+int processformat(va_list args, ops *op, char **src, const char *format) {
+  int res = 0;
+  switch (*format) {
+    case 'x':
+    case 'X':
+      res += opu(args, op, src, 16);
+      break;
+    case 'p':
+      res += opp(args, op, src);
+      break;
+    case 'e':
+    case 'E':
+    case 'f':
+    case 'g':
+    case 'G':
+      res += opf(args, op, src);
+      break;
+    case 'c':
+      res += opc(args, op, src);
+      break;
+    case 'd':
+      res += opd(args, op, src, 10);
+      break;
+    case 'i':
+      res += opd(args, op, src, 0);
+      break;
+    case 'o':
+      res += opu(args, op, src, 8);
+      break;
+    case 's':
+      res += opst(args, op, src);
+      break;
+    case 'u':
+      res += opu(args, op, src, 10);
+      break;
+    case 'n':
+      opn(args, op);
+      break;
+    case '%':
+      oppe(src, op, format);
+      break;
+    case 'h':
+      op->len = 1;
+      break;
+    case '*':
+      op->supr = 1;
+      break;
+    case 'l':
+      op->len = 2;
+      break;
+    case 'L':
+      op->len = 3;
+      break;
+  }
+  return res;
+}
+
+void check_buffer(char **src, ops *op) {
+  oksym(src, op);
+  if (!op->buff && op->wid && op->wid < (int)s21_strlen(*src)) {
+    op->buff = *(*src + op->wid);
+    *(*src + op->wid) = '\0';
+  }
 }

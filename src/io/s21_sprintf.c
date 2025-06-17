@@ -1,601 +1,612 @@
-#include "s21_sprintf.h"
-#include "../s21_string.h"
+
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <wchar.h>
+#include "s21_string.h"
+
+char *s21_strcat(char *destptr, const char *srcptr) {
+  int destptrLength = s21_strlen(destptr);
+  int srcptrLength = s21_strlen(srcptr);
+
+  for (int x = 0; x <= srcptrLength; x += 1)
+    destptr[destptrLength + x] = srcptr[x];
+
+  return destptr;
+}
+
+int s21_strcmp(const char *str_1, const char *str_2) {
+  int result = 0;
+
+  for (int x = 0; result == 0 && str_1[x] != '\0' && str_2[x] != '\0'; x += 1)
+    if (str_1[x] != str_2[x]) result = str_1[x] - str_2[x];
+
+  return result == 0 ? 0 : (result > 0 ? 1 : (-1));
+}
+
+void *s21_memmove(void *dest, const void *src, s21_size_t size) {
+  char *aux = (char *)malloc(sizeof(char) * size);
+
+  if (aux) {
+    s21_memcpy(aux, ((char *)src), size);
+    s21_memcpy(((char *)dest), aux, size);
+    free(aux);
+  }
+
+  return dest;
+}
+
+
+
 
 int s21_sprintf(char *str, const char *format, ...) {
-    flags f = {0};
-    va_list va;
-    va_start(va, format);
-    char *str_beginning = str;
-    while (*format) {
-        if (*format != '%') {
-            *str++ = *format++;
-            continue;
-        } else {
-            format++;
-            s21_memset(&f, 0, sizeof(flags));
-        }
-
-        format = get_flags(format, &f);
-        format = get_width(format, &f, va);
-        format = get_precision(format, &f, va);
-        format = get_length(format, &f);
-
-        f.specifier = *format;
-        format++;
-
-        char buff[BUFF_SIZE] = {'\0'};
-        handle_value(f, buff, va);
-        for (int i = 0; buff[i]; i++, str++)
-            *str = buff[i];
-
-        if (f.specifier == 'n') {
-            int *ret = va_arg(va, int *);
-            *ret = str - str_beginning;
-        }
-    }
-
-    *str = '\0';
-    va_end(va);
-    return str - str_beginning;
-}
-
-const char *get_flags(const char *format, flags *f) {
-    while (*format == '-' || *format == '+' || *format == ' ' ||
-           *format == '0' || *format == '#') {
-        switch (*format) {
-        case '0':
-            f->zero = true;
-            break;
-        case '-':
-            f->minus = true;
-            break;
-        case '+':
-            f->plus = true;
-            break;
-        case ' ':
-            f->space = true;
-            break;
-        case '#':
-            f->hash = true;
-            break;
-        }
-        format++;
-    }
-    return format;
-}
-
-const char *get_width(const char *format, flags *f, va_list va) {
-    if (*format == '*') {
-        format++;
-        f->width = va_arg(va, int);
-    } else if (s21_isdigit(*format)) {
-        char tmp[BUFF_SIZE] = {'\0'};
-        for (int i = 0; s21_isdigit(*format); i++, format++)
-            tmp[i] = *format;
-        f->width = s21_atoi(tmp);
-    }
-    return format;
-}
-
-const char *get_precision(const char *format, flags *f, va_list va) {
-    if (*format == '.') {
-        f->is_precision_set = true;
-        format++;
-    }
-
-    if (*format == '*') {
-        format++;
-        f->precision = va_arg(va, int);
-    }
-    if (s21_isdigit(*format)) {
-        char tmp[BUFF_SIZE] = {'\0'};
-        for (int i = 0; s21_isdigit(*format); i++, format++)
-            tmp[i] = *format;
-        f->precision = s21_atoi(tmp);
-    }
-    return format;
-}
-
-const char *get_length(const char *format, flags *f) {
-    switch (*format) {
-    case 'h':
-        f->length = 'h';
-        format++;
-        break;
-    case 'l':
-        f->length = 'l';
-        format++;
-        break;
-    case 'L':
-        f->length = 'L';
-        format++;
-    }
-    return format;
-}
-
-void handle_value(flags f, char *buff, va_list va) {
-    if (f.specifier == 'd' || f.specifier == 'i')
-        parse_int(f, buff, va);
-    else if (f.specifier == 'u')
-        parse_unsigned(f, buff, va);
-    else if (f.specifier == 'o')
-        parse_octal(f, buff, va);
-    else if (f.specifier == 'x' || f.specifier == 'X')
-        parse_hex(f, buff, va);
-    else if (f.specifier == '%')
-        buff[0] = '%';
-    else if (f.specifier == 'c')
-        parse_char(f, buff, va);
-    else if (f.specifier == 's')
-        parse_string(f, buff, va);
-    else if (f.specifier == 'p')
-        parse_pointer(f, buff, va);
-    else if (f.specifier == 'f')
-        parse_float(f, buff, va);
-    else if (f.specifier == 'e' || f.specifier == 'E')
-        parse_mantiss(f, buff, va);
-    else if (f.specifier == 'g' || f.specifier == 'G')
-        parse_float_g_G(f, buff, va);
-    if (f.specifier == 'G' || f.specifier == 'E' || f.specifier == 'X')
-        to_upper(buff);
-}
-
-void parse_int(flags f, char *buff, va_list va) {
-    long long int val = va_arg(va, long long int);
-
-    switch (f.length) {
-    case 0:
-        val = (int)val;
-        break;
-    case 'h':
-        val = (short)val;
-    }
-    whole_num_to_string(val, buff, 10);
-    format_precision(buff, f);
-    format_flags(buff, f);
-}
-
-void whole_num_to_string(long long int val, char *ret, int base) {
-    char tmp[BUFF_SIZE] = {'\0'};
-    int idx = BUFF_SIZE - 2;
-
-    bool neg = val < 0 ? 1 : 0;
-    val = neg ? -val : val;
-
-    if (val == 0)
-        tmp[idx] = '0';
-
-    while (val > 0) {
-        idx--;
-        tmp[idx] = "0123456789abcdef"[val % base];
-        val /= base;
-    }
-    for (int j = 0; tmp[idx]; idx++, j++) {
-        if (neg && j == 0) {
-            ret[j++] = '-';
-        }
-
-        ret[j] = tmp[idx];
-    }
-}
-
-void format_precision(char *buff, flags f) {
-    char tmp[BUFF_SIZE] = {'\0'};
-
-    int sign = 0;
-    int len = s21_strlen(buff);
-
-    if (buff[0] == '-') {
-        tmp[0] = '-';
-        len--;
-        sign = 1;
-    }
-
-    if (f.precision > len) {
-        int idx;
-        for (idx = sign; idx < f.precision - len + sign; idx++)
-            tmp[idx] = '0';
-
-        for (int i = sign; buff[i]; i++, idx++)
-            tmp[idx] = buff[i];
-
-        s21_strcpy(buff, tmp);
-    }
-
-    if (f.is_precision_set && f.precision == 0 &&
-        check_integer_specifier(f.specifier) && buff[0] == '0')
-        buff[0] = '\0';
-}
-
-bool check_integer_specifier(char c) {
-    char specs[] = {'d', 'i', 'o', 'u', 'x', 'X'};
-    bool res = false;
-    for (s21_size_t i = 0; i < sizeof(specs); i++) {
-        if (specs[i] == c) {
-            res = true;
-            break;
-        }
-    }
-    return res;
-}
-
-void format_flags(char *buff, flags f) {
-    char tmp[BUFF_SIZE + 1] = {'\0'};
-    if (f.plus && f.specifier != 'u') {
-        tmp[0] = buff[0] == '-' ? buff[0] : '+';
-        s21_strcpy(tmp + 1, buff[0] == '-' ? buff + 1 : buff);
-        s21_strcpy(buff, tmp);
-    } else if (f.space && buff[0] != '-' && f.specifier != 'u') {
-        tmp[0] = ' ';
-        s21_strcpy(tmp + 1, buff);
-        s21_strcpy(buff, tmp);
-    }
-    if (f.width > (int)s21_strlen(buff)) {
-        int idx = f.width - s21_strlen(buff);
-        if (!f.minus) {
-            s21_memset(tmp, f.zero ? '0' : ' ', idx);
-            s21_strcpy(tmp + idx, buff);
-        } else {
-            s21_strcpy(tmp, buff);
-            s21_memset(tmp + s21_strlen(tmp), ' ', idx);
-        }
-        s21_strcpy(buff, tmp);
-    }
-}
-
-void unsigned_num_to_string(unsigned long long int val, char *ret, int base) {
-    char buf[BUFF_SIZE + 1] = {'\0'};
-    int idx = BUFF_SIZE - 1;
-    if (val == 0) {
-        buf[idx] = '0';
-        idx--;
-    }
-
-    for (; val && idx; --idx, val /= base)
-        buf[idx] = "0123456789abcdef"[val % base];
-    for (int j = 0; buf[idx + 1]; idx++, j++)
-        ret[j] = buf[idx + 1];
-}
-
-void parse_unsigned(flags f, char *buff, va_list va) {
-    unsigned long long int val = va_arg(va, unsigned long long int);
-    switch (f.length) {
-    case 'h':
-        val = (uint16_t)val;
-        break;
-    case 'l':
-        val = (unsigned long long int)val;
-        break;
-    case 0:
-        val = (uint32_t)val;
-    }
-    unsigned_num_to_string(val, buff, 10);
-    format_precision(buff, f);
-    format_flags(buff, f);
-}
-
-void parse_octal(flags f, char *buff, va_list va) {
-    buff[0] = '0';
-    whole_num_to_string(va_arg(va, long long int), buff + f.hash, 8);
-    format_precision(buff, f);
-    format_flags(buff, f);
-}
-
-void to_upper(char *str) {
-    while (*str) {
-        if (*str >= 'a' && *str <= 'z')
-            *str = *str - 'a' + 'A';
-        str++;
-    }
-}
-
-bool is_all_zeroes(char *buff) {
-    for (int i = 0; buff[i]; i++)
-        if (buff[i] != '0')
-            return false;
-    return true;
-}
-
-void parse_hex(flags f, char *buff, va_list va) {
-    unsigned long long int val = va_arg(va, unsigned long long int);
-    switch (f.length) {
-    case 0:
-        val = (uint32_t)val;
-        break;
-    case 'h':
-        val = (uint16_t)val;
-        break;
-    case 'l':
-        val = (unsigned long long int)val;
-        break;
-    }
-    unsigned_num_to_string(val, buff, 16);
-    format_precision(buff, f);
-    if (f.hash) {
-        prepend_ox(buff, f);
-    }
-    format_flags(buff, f);
-}
-
-void prepend_ox(char *buff, flags f) {
-    if (!is_all_zeroes(buff) || f.specifier == 'p') {
-        s21_memmove(buff + 2, buff, s21_strlen(buff));
-        buff[0] = '0';
-        buff[1] = 'x';
-    }
-}
-
-void parse_char(flags f, char *buff, va_list va) {
-    if (f.length == 'l') {
-        wchar_t w_c;
-        w_c = va_arg(va, wchar_t);
-        format_wchar(f, buff, w_c);
+  str[0] = '\0';
+  va_list params;
+  va_start(params, format);
+  int counter = 0;
+  for (int x = 0; format[x] != '\0'; x += 1) {
+    if (format[x] == '%') {
+      spec config = {"xxxxx", INT_MIN, INT_MIN, 'x'};
+      x = searchModifiersForString(x, format, &config, &params);
+      if (format[x] == 'n') {
+        *(va_arg(params, int *)) = counter;
+      } else {
+        counter +=
+            insertStringBySpecifier(str + counter, format[x], config, &params);
+      }
     } else {
-        char c;
-        c = va_arg(va, int);
-        format_char(f, buff, c);
+      str[counter] = format[x];
+      str[counter += 1] = '\0';
     }
+  }
+  va_end(params);
+  return counter;
 }
 
-void format_wchar(flags f, char *buff, wchar_t w_c) {
-    if (!f.minus && f.width) {
-        char tmp[BUFF_SIZE] = {'\0'};
-        wcstombs(tmp, &w_c, BUFF_SIZE);
-        for (s21_size_t i = 0; i < f.width - s21_strlen(tmp); i++)
-            buff[i] = ' ';
-        s21_strcat(buff, tmp);
-    } else if (f.width) {
-        wcstombs(buff, &w_c, BUFF_SIZE);
-        for (int i = s21_strlen(buff); i < f.width; i++)
-            buff[i] = ' ';
-    } else {
-        wcstombs(buff, &w_c, BUFF_SIZE);
-    }
-}
-void format_char(flags f, char *buff, char c) {
-    if (!f.minus && f.width) {
-        for (int i = 0; i < f.width; i++) {
-            buff[i] = ' ';
-            if (i == f.width - 1)
-                buff[i] = c;
-        }
-    } else if (f.width) {
-        buff[0] = c;
-        for (int i = 1; i < f.width; i++)
-            buff[i] = ' ';
-    } else {
-        buff[0] = c;
-    }
+int searchModifiersForString(int x, const char *format, spec *config,
+                             va_list *params) {
+  for (x += 1; s21_strchr("-+ #0", format[x]); x += 1)
+    (config->flag)[5 - s21_strlen(s21_strchr("-+ #0", format[x]))] = 'o';
+  for (; s21_strchr("0123456789", format[x]); x += 1)
+    config->width = (config->width * 10) + (format[x] - 48);
+  for (; format[x] == '*'; x += 1) config->width = va_arg(*params, int);
+  if (format[x] == '.') {
+    for (x += 1; format[x] == '-'; x += 1) continue;
+    for (; s21_strchr("0123456789", format[x]); x += 1)
+      config->accuracy = (config->accuracy * 10) + (format[x] - 48);
+    for (; format[x] == '*'; x += 1) config->accuracy = va_arg(*params, int);
+    config->accuracy < 0 ? config->accuracy = 0 : 0;
+  }
+  for (; s21_strchr("hlL", format[x]); x += 1) config->type = format[x];
+  return x;
 }
 
-void parse_string(flags f, char *buff, va_list va) {
-    if (f.length == 'l') {
-        wchar_t *wstr = va_arg(va, wchar_t *);
-        format_wide_string(f, buff, wstr);
-    } else {
-        char *str = va_arg(va, char *);
-        format_string(f, buff, str);
-    }
-}
-void format_string(flags f, char *buff, char *str) {
-    char tmp[BUFF_SIZE] = {'\0'};
-    s21_strcpy(tmp, str);
-    if (f.is_precision_set)
-        tmp[f.precision] = '\0';
-
-    int shift = f.width - s21_strlen(tmp);
-    int len = s21_strlen(tmp);
-
-    if (f.minus && shift > 0) {
-        s21_strcpy(buff, tmp);
-        s21_memset(buff + len, ' ', shift);
-    } else if (shift > 0) {
-        s21_memset(buff, ' ', shift);
-        s21_strcpy(buff + shift, tmp);
-    } else {
-        s21_strcpy(buff, tmp);
-    }
-}
-void format_wide_string(flags f, char *buff, wchar_t *wstr) {
-    char tmp[BUFF_SIZE] = {'\0'};
-    char str[BUFF_SIZE] = {'\0'};
-
-    wcstombs(str, wstr, BUFF_SIZE);
-    s21_strcpy(tmp, str);
-    if (f.is_precision_set)
-        tmp[f.precision] = '\0';
-
-    int shift = f.width - s21_strlen(tmp);
-    int len = s21_strlen(tmp);
-
-    if (f.minus && shift > 0) {
-        s21_strcpy(buff, tmp);
-        s21_memset(buff + len, ' ', shift);
-    } else if (shift > 0) {
-        s21_memset(buff, ' ', shift);
-        s21_strcpy(buff + shift, tmp);
-    } else {
-        s21_strcpy(buff, tmp);
-    }
+int setBaseAccuracyValue(int accuracy, int symbol) {
+  if (accuracy < 0) {
+    s21_strchr("diouxX", symbol) ? accuracy = 1 : 0;
+    s21_strchr("eEfgG", symbol) ? accuracy = 6 : 0;
+    s21_strchr("p", symbol) ? accuracy = 16 : 0;
+  }
+  return accuracy;
 }
 
-void parse_pointer(flags f, char *buff, va_list va) {
-    unsigned_num_to_string(va_arg(va, unsigned long long int), buff, 16);
-    format_precision(buff, f);
-    prepend_ox(buff, f);
-    format_flags(buff, f);
+int insertStringBySpecifier(char *str, char symbol, spec config,
+                            va_list *params) {
+  char *flag = config.flag;
+  int indent = 0, accuracy = setBaseAccuracyValue(config.accuracy, symbol);
+  if (symbol == '%') {
+    s21_strcat(str, "%");
+  } else if (symbol == 'c') {
+    return s21_ctos(str + indent, params, flag, config.width, config.type);
+  } else if (s21_strchr("di", symbol)) {
+    if (config.type == 'h')
+      s21_itoa_short(str + indent, va_arg(*params, int), accuracy, flag);
+    else if (config.type == 'l')
+      s21_itoa_long(str + indent, va_arg(*params, long int), accuracy, flag);
+    else
+      s21_itoa(str + indent, va_arg(*params, int), accuracy, flag);
+  } else if (symbol == 'p') {
+    s21_ptoa(str + indent, va_arg(*params, void *));
+  } else if (symbol == 's') {
+    s21_stos(str + indent, params, accuracy, config.type);
+  } else if (symbol == 'f') {
+    if (config.type == 'L')
+      s21_ftoa_long(str + indent, va_arg(*params, long double), accuracy, flag,
+                    0);
+    else
+      s21_ftoa(str + indent, va_arg(*params, double), accuracy, flag, 0);
+  } else if (s21_strchr("gG", symbol)) {
+    if (config.type == 'L')
+      s21_gtoa_long(str + indent, va_arg(*params, long double), accuracy, flag,
+                    symbol);
+    else
+      s21_gtoa(str + indent, va_arg(*params, double), accuracy, flag, symbol);
+  } else if (s21_strchr("eE", symbol)) {
+    if (config.type == 'L')
+      s21_ntoa_long(str + indent, va_arg(*params, long double), accuracy, flag,
+                    symbol, 0);
+    else
+      s21_ntoa(str + indent, va_arg(*params, double), accuracy, flag, symbol,
+               0);
+  } else if (s21_strchr("xX", symbol)) {
+    if (config.type == 'h')
+      s21_utoa_short(str + indent, va_arg(*params, int),
+                     symbol == 'x' ? 32 : 16, accuracy, flag);
+    else if (config.type == 'l')
+      s21_utoa_long(str + indent, va_arg(*params, long int),
+                    symbol == 'x' ? 32 : 16, accuracy, flag);
+    else
+      s21_utoa(str + indent, va_arg(*params, int), symbol == 'x' ? 32 : 16,
+               accuracy, flag);
+  } else if (symbol == 'o') {
+    if (config.type == 'h')
+      s21_utoa_short(str + indent, va_arg(*params, unsigned int), 8, accuracy,
+                     flag);
+    else if (config.type == 'l')
+      s21_utoa_long(str + indent, va_arg(*params, long unsigned int), 8,
+                    accuracy, flag);
+    else
+      s21_utoa(str + indent, va_arg(*params, unsigned int), 8, accuracy, flag);
+  } else if (symbol == 'u') {
+    if (config.type == 'h')
+      s21_utoa_short(str + indent, va_arg(*params, unsigned int), 10, accuracy,
+                     flag);
+    else if (config.type == 'l')
+      s21_utoa_long(str + indent, va_arg(*params, long unsigned int), 10,
+                    accuracy, flag);
+    else
+      s21_utoa(str + indent, va_arg(*params, unsigned int), 10, accuracy, flag);
+  }
+  s21_strchr("n%c", symbol) ? 0 : s21_conf(str + indent, config, symbol);
+  return s21_strlen(str);
 }
 
-void parse_float(flags f, char *buff, va_list va) {
-    long double val = 0;
-    if (f.length == 'L') {
-        val = va_arg(va, long double);
-    } else {
-        val = va_arg(va, double);
+char *s21_conf(char *str, spec config, char symbol) {
+  if (s21_strcmp(config.flag, "xxxxx") || config.width >= 0 ||
+      config.type != 'x') {
+    if (s21_strchr("gG", symbol) && config.flag[3] != 'o') {
+      if (!(s21_strlen(str) == 1 && str[0] == '0')) {
+        for (int x = (s21_strlen(str) - 1); str[x] == '0';
+             str[x] = '\0', x -= 1)
+          continue;
+      }
     }
-
-    if (!f.is_precision_set) {
-        f.precision = 6;
+  }
+  char *aux = str;
+  char filler = ' ';
+  int countFill = config.width > 0 ? config.width - s21_strlen(str) : 0;
+  if (config.flag[4] == 'o') {
+    aux[0] == '-' ? aux += 1 : 0;
+    s21_strchr("cs", symbol) ? 0 : (filler = '0');
+  } else if (config.flag[0] == 'o') {
+    aux += s21_strlen(aux);
+  }
+  if (countFill > 0) {
+    for (s21_memmove(aux + countFill, aux, s21_strlen(aux) + 1);
+         countFill != 0;) {
+      aux[countFill - 1] = filler;
+      countFill -= 1;
     }
-
-    double_to_string(val, buff, f);
-    format_flags(buff, f);
-}
-void double_to_string(long double val, char *ret, flags f) {
-    char buff[BUFF_SIZE] = {'\0'};
-    int idx = BUFF_SIZE - 2;
-    bool neg = val < 0 ? 1 : 0;
-    val = neg ? val * -1 : val;
-    long double l = 0, r = modfl(val, &l);
-    if (f.precision == 0) {
-        l = roundl(val);
-        r = 0;
-    }
-    char fractions[BUFF_SIZE] = {'\0'};
-    for (int i = 0; i < f.precision; i++) {
-        r = r * 10;
-        fractions[i] = (int)r + '0';
-    }
-    long long right = roundl(r), left = l;
-    if (!right) {
-        for (int i = 0; i < f.precision; idx--, i++)
-            buff[idx] = '0';
-    } else {
-        for (int i = s21_strlen(fractions); right || i > 0;
-             right /= 10, idx--, i--)
-            buff[idx] = (int)(right % 10 + 0.05) + '0';
-    }
-    if ((f.is_precision_set && f.precision != 0) || (int)r ||
-        (!f.is_precision_set && val == 0) || s21_strlen(fractions))
-        buff[idx--] = '.';
-    if (!left) {
-        buff[idx] = '0';
-        idx--;
-    } else {
-        for (; left; left /= 10, idx--)
-            buff[idx] = (int)(left % 10) + '0';
-    }
-    for (int i = 0; buff[idx + 1]; idx++, i++) {
-        if (neg && i == 0) {
-            ret[i] = '-';
-            i++;
-        }
-        ret[i] = buff[idx + 1];
-    }
+  }
+  return str;
 }
 
-void parse_mantiss(flags f, char *buff, va_list va) {
-    long double val = 0;
-    if (f.length == 'L') {
-        val = va_arg(va, long double);
-    } else {
-        val = va_arg(va, double);
-    }
-    int pow = 0;
-    char sign = (int)val == 0 ? '-' : '+';
-
-    if ((int)val - val) {
-        while ((int)val == 0) {
-            pow++;
-            val *= 10;
-        }
-    } else {
-        sign = '+';
-    }
-    while ((int)val / 10 != 0) {
-        pow++;
-        val /= 10;
-    }
-
-    if (!f.is_precision_set)
-        f.precision = 6;
-    double_to_string(val, buff, f);
-    prepend_mantiss(buff, pow, sign);
-    format_flags(buff, f);
+int s21_ctos(char *str, va_list *params, char *flag, int accuracy, char type) {
+  int counter = 0;
+  accuracy = accuracy < 1 ? 1 : accuracy;
+  if (type == 'l') {
+    wchar_t w_c = va_arg(*params, wchar_t);
+    counter = wcstombs(str + counter, &w_c, 512);
+  } else {
+    str[counter++] = va_arg(*params, int);
+    str[counter] = '\0';
+  }
+  if (flag[0] != 'o' && accuracy - counter > 0) {
+    s21_memmove(str + (accuracy - counter), str, counter + 1);
+    for (int x = 0; x < accuracy - counter; x += 1) str[x] = ' ';
+    counter = accuracy;
+  }
+  for (int x = counter; flag[0] == 'o' && x < (accuracy); x += 1)
+    str[counter++] = ' ';
+  return counter;
 }
 
-void prepend_mantiss(char *str, int pow, char sign) {
-    int len = s21_strlen(str);
-    str[len] = 'e';
-    str[len + 1] = sign;
-    str[len + 3] = pow % 10 + '0';
-    pow /= 10;
-    str[len + 2] = pow % 10 + '0';
-    str[len + 4] = '\0';
+char *s21_stos(char *str, va_list *params, int accuracy, char type) {
+  if (type == 'l') {
+    wcstombs(str, va_arg(*params, wchar_t *), 512);
+  } else {
+    s21_strcat(str, va_arg(*params, char *));
+  }
+  accuracy < 0 ? accuracy = s21_strlen(str) : 0;
+  str[accuracy] = '\0';
+  return str;
 }
 
-void parse_float_g_G(flags f, char *buff, va_list va) {
-    long double val = 0;
-    if (f.length == 'L') {
-        val = va_arg(va, long double);
-    } else {
-        val = va_arg(va, double);
-    }
-
-    if (!f.is_precision_set) {
-        f.precision = 6;
-    }
-    if (f.precision == 0)
-        f.precision = 1;
-    int precision = f.precision;
-    long double m_val = val;
-    int pow = 0;
-    if ((int)val - val) {
-        while ((int)m_val == 0) {
-            pow++;
-            m_val *= 10;
-        }
-    }
-    if (pow > 4) {
-        f.precision = 0;
-        double_to_string(m_val, buff, f);
-    } else {
-        f.precision = 10;
-        double_to_string(val, buff, f);
-    }
-    format_gG_precision(buff, precision);
-    if (pow > 4)
-        prepend_mantiss(buff, pow, '-');
-    remove_trailing_zeroes(buff);
-    format_flags(buff, f);
+char *s21_reverse(char *str) {
+  int lenStr = s21_strlen(str);
+  for (int x = 0; x < (lenStr / 2); x += 1) {
+    char aux = str[lenStr - 1 - x];
+    str[lenStr - 1 - x] = str[x];
+    str[x] = aux;
+  }
+  return str;
 }
 
-void remove_trailing_zeroes(char *buff) {
-    int len = s21_strlen(buff);
-    char *dot = s21_strchr(buff, '.');
-    if (dot) {
-        for (int i = len - 1; buff[i] != '.'; i--) {
-            if (buff[i] == '0')
-                buff[i] = '\0';
-            else
-                break;
-        }
-        if (dot[1] == '\0')
-            dot[0] = '\0';
+
+char *s21_ptoa(char *str, int *variable) {
+  int *aux = variable;
+  if (aux == NULL) {
+    // OSS == 1 ? s21_strcat(str, "(nil)") : s21_strcat(str, "0x0");
+    s21_strcat(str, "0x0");
+  } else {
+    for (int x = s21_strlen(str); aux != 0;
+         aux = ((void *)(((size_t)aux) >> 4)), x += 1) {
+      unsigned int last_symbol = ((size_t)aux) % 0x10;
+      last_symbol < 10 ? (str[x] = ('0' + last_symbol))
+                       : (str[x] = ('a' + (last_symbol - 10)));
+      str[x + 1] = '\0';
     }
+    s21_strcat(str, "x0");
+    s21_reverse(str);
+  }
+  return str;
 }
 
-void format_gG_precision(char *buff, int precision) {
-    int sig_digs = 0;
-    s21_size_t len = s21_strlen(buff);
-    int not_zero_found = 0;
-    for (s21_size_t i = 0; i < s21_strlen(buff); i++) {
-        if ((buff[i] == '0' && !not_zero_found) || buff[i] == '.')
-            continue;
-        else
-            not_zero_found = 1;
-
-        if (s21_isdigit(buff[i]) && not_zero_found) {
-            sig_digs++;
-        }
-        if (sig_digs == precision && i + 1 < len) {
-            int next = buff[i + 1] == '.' ? 2 : 1;
-            buff[i] = buff[i + next] - '0' > 5 ? (char)(buff[i] + 1) : buff[i];
-            buff[i + 1] = '\0';
-            break;
-        }
-    }
+char *s21_utoa(char *str, unsigned int number, int format, int accuracy,
+               char *flag) {
+  int lenStr = 0, type = 97, numb = number;
+  format == 32 ? format /= 2 : (type = 65);
+  for (; (lenStr < accuracy - 1) || (number / format) != 0;
+       number /= format, lenStr += 1)
+    str[lenStr] = (number % format) < 10 ? (number % format) + 48
+                                         : ((number % format) - 10) + type;
+  str[lenStr++] = number < 10 ? number + 48 : (number - 10) + type;
+  (flag[3] == 'o' && format == 8 && number != 0) ? str[lenStr++] = '0' : 0;
+  str[lenStr] = '\0';
+  (flag[3] == 'o' && format == 16 && type == 65 && numb != 0)
+      ? s21_strcat(str, "X0")
+      : 0;
+  (flag[3] == 'o' && format == 16 && type == 97 && numb != 0)
+      ? s21_strcat(str, "x0")
+      : 0;
+  s21_reverse(str);
+  return str;
 }
 
-int s21_isdigit(char c) { return (c >= '0' && c <= '9'); }
+char *s21_ntoa_long(char *str, long double number, int accuracy, char *flag,
+                    int symbol, int kostyl_2) {
+  int lenStr = 0, lenNum = 0, result = 0, kostyl = accuracy;
+  char flagX[10] = "xxxxx";
+  char flag1[10] = "xoxxx";
+  if (number != 0) {
+    for (int aux = lenNum = fabsl(number) < 1    ? 1
+                            : fabsl(number) < 10 ? 0
+                                                 : (-1);
+         aux != 0; lenNum += aux)
+      aux = ((fabsl(number) * powl(10, lenNum)) < 1 ||
+             10 < fabsl(number) * powl(10, lenNum))
+                ? aux
+                : 0;
+  }
+  s21_itoa(str,
+           (kostyl == 0 ? (roundl(number * powl(10, lenNum)))
+                        : (number * powl(10, lenNum))),
+           1, flag);
+  (kostyl != 0 || flag[3] == 'o')
+      ? s21_strcat(str, (localeconv()->decimal_point))
+      : 0;
+  for (lenStr = s21_strlen(str); number < 0; number *= (-1)) continue;
+  for (result = lenNum; (accuracy != 0 && (lenNum + 1) <= 0); accuracy -= 1) {
+    if (accuracy == 1)
+      s21_itoa(str + (lenStr++),
+               roundl(fmodl((roundl(number) * powl(10, lenNum += 1)), 10)), 1,
+               flagX);
+    else
+      s21_itoa(str + (lenStr++), fmodl((number * powl(10, lenNum += 1)), 10), 1,
+               flagX);
+  }
+  for (int aux = lenNum + 1; accuracy != 0; accuracy -= 1) {
+    if (accuracy == 1)
+      s21_itoa(str + (lenStr++),
+               roundl(fmodl((number * powl(10, (aux++))), 10)), 1, flagX);
+    else
+      s21_itoa(str + (lenStr++), fmodl((number * powl(10, (aux++))), 10), 1,
+               flagX);
+  }
+  if (kostyl_2 == 1 && flag[3] != 'o') {
+    for (int x = s21_strlen(str) - 1; s21_strchr("0.", str[x]); str[x--] = '\0')
+      continue;
+    for (int x = s21_strlen(str) - 1;
+         s21_strchr((localeconv()->decimal_point), str[x]);)
+      str[x--] = '\0';
+  }
+  lenStr = s21_strlen(str);
+  str[lenStr++] = symbol;
+  str[lenStr] = '\0';
+  s21_itoa(str + (lenStr), -result, 2, flag1);
+  return str;
+}
+
+char *s21_ftoa_long(char *str, long double number, int afterpoint, char *flag,
+                    int kostyl_2) {
+  char flagX[10] = "xxxxx";
+  int lenStr = 0, minus = 0, kostyl = afterpoint, k3 = 0;
+  for (; number < 0; number *= (-1), minus = 1) continue;
+  long double aux =
+      ceill((number - truncl(number)) * powl(10, afterpoint) - 0.5);
+  for (; ((afterpoint != 0) || ((aux / 10) > 1) || (fmodl(aux, 10) > 1));
+       afterpoint -= 1, aux /= 10) {
+    str[lenStr++] = ((int)fmodl(aux, 10)) + 48;
+    str[lenStr] = '\0';
+  }
+  aux == 1 ? k3 = 1 : 0;
+  (kostyl != 0 || flag[3] == 'o')
+      ? str[lenStr++] = (localeconv()->decimal_point)[0]
+      : 0;
+  kostyl == 0 ? number = roundl(number) : 0;
+  for (aux = k3 == 1 ? round(number) : number; ((aux / 10) >= 1);
+       aux /= 10, str[lenStr] = '\0')
+    str[lenStr++] = ((int)fmodl(aux, 10)) + 48;
+  s21_itoa(str + lenStr, fmodl(aux, 10), 1, flagX);
+  minus == 1 ? s21_strcat(str, "-") : 0;
+  lenStr = s21_strlen(str);
+  if (str[lenStr - 1] != '-' && (flag[1] == 'o' || flag[2] == 'o')) {
+    str[lenStr++] = flag[1] == 'o' ? '+' : ' ';
+    str[lenStr] = '\0';
+  }
+  s21_reverse(str);
+  if (kostyl_2 == 1 && flag[3] != 'o') {
+    int x = s21_strlen(str) - 1;
+    for (; s21_strchr("0", str[x]); str[x--] = '\0') continue;
+    str[x] == (localeconv()->decimal_point)[0] ? str[x] = '\0' : 0;
+  }
+  return str;
+}
+
+char *s21_gtoa_long(char *str, long double number, int accuracy, char *flag,
+                    int symbol) {
+  int lenNum = 0;
+  accuracy == 0 ? accuracy = 1 : 0;
+  if (number == 0) {
+    s21_ftoa_long(str, number, accuracy - 1, flag, 1);
+  } else {
+    for (int aux = lenNum = fabsl(number) < 1    ? 1
+                            : fabsl(number) < 10 ? 0
+                                                 : (-1);
+         aux != 0; lenNum += aux)
+      aux = ((fabsl(number) * powl(10, lenNum)) < 1 ||
+             10 < fabsl(number) * powl(10, lenNum))
+                ? aux
+                : 0;
+    if (lenNum <= 0)
+      (accuracy + lenNum <= 0)
+          ? s21_ntoa_long(str, number, accuracy - 1, flag, symbol - 2, 1)
+          : s21_ftoa_long(str, number, (accuracy - 1) + lenNum, flag, 1);
+    else
+      (accuracy - 1) <= lenNum
+          ? s21_ntoa_long(str, number, accuracy - 1, flag, symbol - 2, 1)
+          : s21_ftoa_long(str, number, lenNum + (accuracy - 1), flag, 1);
+  }
+  return str;
+}
+
+char *s21_itoa(char *str, int number, int accuracy, char *flag) {
+  int lenStr = 0, minus = number < 0 ? (number *= (-1)) : 0;
+  if (number < 0) {
+    for (; ((lenStr < accuracy) || (-(number / 10) != 0) ||
+            (-(number % 10) != 0));
+         number /= 10)
+      str[lenStr++] = (-(number % 10)) + 48;
+  } else {
+    for (;
+         ((lenStr < accuracy) || ((number / 10) != 0) || ((number % 10) != 0));
+         number /= 10)
+      str[lenStr++] = (number % 10) + 48;
+  }
+  minus != 0 ? str[lenStr++] = '-' : 0;
+  if (str[lenStr - 1] != '-' && (flag[1] == 'o' || flag[2] == 'o'))
+    str[lenStr++] = flag[1] == 'o' ? '+' : ' ';
+  str[lenStr] = '\0';
+  s21_reverse(str);
+  return str;
+}
+
+char *s21_utoa_long(char *str, long unsigned int number, int format,
+                    int accuracy, char *flag) {
+  int lenStr = 0, type = 97, numb = number;
+  format == 32 ? format /= 2 : (type = 65);
+  for (; (lenStr < accuracy - 1) || (number / format) != 0;
+       number /= format, lenStr += 1)
+    str[lenStr] = (number % format) < 10 ? (number % format) + 48
+                                         : ((number % format) - 10) + type;
+  str[lenStr++] = number < 10 ? number + 48 : (number - 10) + type;
+  (flag[3] == 'o' && format == 8 && number != 0) ? str[lenStr++] = '0' : 0;
+  str[lenStr] = '\0';
+  (flag[3] == 'o' && format == 16 && type == 65 && numb != 0)
+      ? s21_strcat(str, "X0")
+      : 0;
+  (flag[3] == 'o' && format == 16 && type == 97 && numb != 0)
+      ? s21_strcat(str, "x0")
+      : 0;
+  s21_reverse(str);
+  return str;
+}
+
+char *s21_itoa_long(char *str, long int number, int accuracy, char *flag) {
+  int lenStr = 0;
+  long int minus = number < 0 ? (number *= (-1)) : 0;
+  if (number < 0) {
+    for (; ((lenStr < accuracy) || (-(number / 10) != 0) ||
+            (-(number % 10) != 0));
+         number /= 10)
+      str[lenStr++] = (-(number % 10)) + 48;
+  } else {
+    for (;
+         ((lenStr < accuracy) || ((number / 10) != 0) || ((number % 10) != 0));
+         number /= 10)
+      str[lenStr++] = (number % 10) + 48;
+  }
+  minus != 0 ? str[lenStr++] = '-' : 0;
+  if (str[lenStr - 1] != '-' && (flag[1] == 'o' || flag[2] == 'o'))
+    str[lenStr++] = flag[1] == 'o' ? '+' : ' ';
+  str[lenStr] = '\0';
+  s21_reverse(str);
+  return str;
+}
+
+char *s21_utoa_short(char *str, short unsigned int number, int format,
+                     int accuracy, char *flag) {
+  int lenStr = 0, type = 97, numb = number;
+  format == 32 ? format /= 2 : (type = 65);
+  for (; (lenStr < accuracy - 1) || (number / format) != 0;
+       number /= format, lenStr += 1)
+    str[lenStr] = (number % format) < 10 ? (number % format) + 48
+                                         : ((number % format) - 10) + type;
+  str[lenStr++] = number < 10 ? number + 48 : (number - 10) + type;
+  (flag[3] == 'o' && format == 8 && number != 0) ? str[lenStr++] = '0' : 0;
+  str[lenStr] = '\0';
+  (flag[3] == 'o' && format == 16 && type == 65 && numb != 0)
+      ? s21_strcat(str, "X0")
+      : 0;
+  (flag[3] == 'o' && format == 16 && type == 97 && numb != 0)
+      ? s21_strcat(str, "x0")
+      : 0;
+  s21_reverse(str);
+  return str;
+}
+
+char *s21_itoa_short(char *str, short int number, int accuracy, char *flag) {
+  int lenStr = 0, minus = number < 0 ? (number *= (-1)) : 0;
+  if (number < 0) {
+    for (; ((lenStr < accuracy) || (-(number / 10) != 0) ||
+            (-(number % 10) != 0));
+         number /= 10)
+      str[lenStr++] = (-(number % 10)) + 48;
+  } else {
+    for (;
+         ((lenStr < accuracy) || ((number / 10) != 0) || ((number % 10) != 0));
+         number /= 10)
+      str[lenStr++] = (number % 10) + 48;
+  }
+  minus != 0 ? str[lenStr++] = '-' : 0;
+  if (str[lenStr - 1] != '-' && (flag[1] == 'o' || flag[2] == 'o'))
+    str[lenStr++] = flag[1] == 'o' ? '+' : ' ';
+  str[lenStr] = '\0';
+  s21_reverse(str);
+  return str;
+}
+
+char *s21_ntoa(char *str, double number, int accuracy, char *flag, int symbol,
+               int kostyl_2) {
+  char flagX[10] = "xxxxx";
+  char flag1[10] = "xoxxx";
+  int lenStr = 0, lenNum = 0, result = 0, kostyl = accuracy;
+  if (number != 0) {
+    for (int aux = lenNum = fabs(number) < 1    ? 1
+                            : fabs(number) < 10 ? 0
+                                                : (-1);
+         aux != 0; lenNum += aux)
+      aux = ((fabs(number) * pow(10, lenNum)) < 1 ||
+             10 < fabs(number) * pow(10, lenNum))
+                ? aux
+                : 0;
+  }
+  s21_itoa(str,
+           (kostyl == 0 ? (round(number * pow(10, lenNum)))
+                        : (number * pow(10, lenNum))),
+           1, flag);
+  (kostyl != 0 || flag[3] == 'o')
+      ? s21_strcat(str, (localeconv()->decimal_point))
+      : 0;
+  for (lenStr = s21_strlen(str); number < 0; number *= (-1)) continue;
+  for (result = lenNum; (accuracy != 0 && (lenNum + 1) <= 0); accuracy -= 1) {
+    if (accuracy == 1)
+      s21_itoa(str + (lenStr++),
+               fmod((round(number) * pow(10, lenNum += 1)), 10), 1, flagX);
+    else
+      s21_itoa(str + (lenStr++), fmod((number * pow(10, lenNum += 1)), 10), 1,
+               flagX);
+  }
+  for (int aux = lenNum + 1; accuracy != 0; accuracy -= 1)
+    accuracy == 1
+        ? s21_itoa(str + (lenStr++),
+                   round(fmod((number * pow(10, (aux++))), 10)), 1, flagX)
+        : s21_itoa(str + (lenStr++), fmod((number * pow(10, (aux++))), 10), 1,
+                   flagX);
+  if (kostyl_2 == 1 && flag[3] != 'o') {
+    for (int x = s21_strlen(str) - 1; s21_strchr("0", str[x]); str[x--] = '\0')
+      continue;
+    for (int x = s21_strlen(str) - 1;
+         s21_strchr((localeconv()->decimal_point), str[x]);)
+      str[x--] = '\0';
+  }
+  lenStr = s21_strlen(str);
+  str[lenStr++] = symbol;
+  str[lenStr] = '\0';
+  s21_itoa(str + (lenStr), -result, 2, flag1);
+  return str;
+}
+
+char *s21_ftoa(char *str, double number, int afterpoint, char *flag,
+               int kostyl_2) {
+  char flagX[10] = "xxxxx";
+  int lenStr = 0, minus = 0, kostyl = afterpoint, k3 = 0;
+  for (; number < 0; number *= (-1), minus = 1) continue;
+  double aux = ceil((number - trunc(number)) * pow(10, afterpoint) - 0.5);
+  for (; ((afterpoint != 0) || ((aux / 10) > 1) || (fmod(aux, 10) > 1));
+       afterpoint -= 1, aux /= 10) {
+    str[lenStr++] = ((int)fmod(aux, 10)) + 48;
+    str[lenStr] = '\0';
+  }
+  aux == 1 ? k3 = 1 : 0;
+  (kostyl != 0 || flag[3] == 'o')
+      ? str[lenStr++] = (localeconv()->decimal_point)[0]
+      : 0;
+  kostyl == 0 ? number = round(number) : 0;
+  for (aux = k3 == 1 ? round(number) : number; (aux / 10 >= 1);
+       aux /= 10, str[lenStr] = '\0')
+    str[lenStr++] = ((int)fmod(aux, 10)) + 48;
+  s21_itoa(str + lenStr, fmod(aux, 10), 1, flagX);
+  minus == 1 ? s21_strcat(str, "-") : 0;
+  lenStr = s21_strlen(str);
+  if (str[lenStr - 1] != '-' && (flag[1] == 'o' || flag[2] == 'o')) {
+    str[lenStr++] = flag[1] == 'o' ? '+' : ' ';
+    str[lenStr] = '\0';
+  }
+  s21_reverse(str);
+  if (kostyl_2 == 1 && flag[3] != 'o') {
+    int x = s21_strlen(str) - 1;
+    for (; s21_strchr("0", str[x]); str[x--] = '\0') continue;
+    str[x] == (localeconv()->decimal_point)[0] ? str[x] = '\0' : 0;
+  }
+  return str;
+}
+
+char *s21_gtoa(char *str, double number, int accuracy, char *flag, int symbol) {
+  int lenNum = 0;
+  accuracy == 0 ? accuracy = 1 : 0;
+  if (number == 0) {
+    s21_ftoa(str, number, accuracy - 1, flag, 1);
+  } else {
+    for (int aux = lenNum = fabs(number) < 1    ? 1
+                            : fabs(number) < 10 ? 0
+                                                : (-1);
+         aux != 0; lenNum += aux)
+      aux = ((fabs(number) * pow(10, lenNum)) < 1 ||
+             10 < fabs(number) * pow(10, lenNum))
+                ? aux
+                : 0;
+    // printf("TEST - %d - %d\n", accuracy, lenNum);
+    if (lenNum <= 0)
+      (accuracy + lenNum <= 0)
+          ? s21_ntoa(str, number, accuracy - 1, flag, symbol - 2, 1)
+          : s21_ftoa(str, number, (accuracy - 1) + lenNum, flag, 1);
+    else
+      lenNum > 4 ? s21_ntoa(str, number, accuracy - 1, flag, symbol - 2, 1)
+                 : s21_ftoa(str, number, lenNum + (accuracy - 1), flag, 1);
+  }
+  return str;
+}

@@ -1,31 +1,47 @@
-
+#ifndef SRC_HEADERS_S21_SSCANF_H_
+#define SRC_HEADERS_S21_SSCANF_H_
 #include <stdarg.h>
-#include <stdbool.h>
-#include <stdlib.h>
 
-
-#ifndef SSCANF
-#define SSCANF
-
-#include "../s21_string.h"
-
-struct Format_Spec {
-    bool optional;    // For '*' to skip assignment
-    int width;        // How many characters to read
-    int length;       // 0: none, -1: h, 1: l, -2: hh, 2: ll, 3: L
-    char specifier;   // Like 'd', 's', 'f'
-    bool isPercent;   // For handling %%
-    bool minus;       // Flag: - (left justification, affects width parsing)
-    bool plus;        // Flag: + (forces sign in input)
-    bool space;       // Flag: (space) (expects space before value if no sign)
-    bool hash;        // Flag: # (affects format, e.g., 0x for hex)
-    bool zero;        // Flag: 0 (left-pad with zeros for width)
+struct mods {
+  int len;
+  int skip;
+  int h;
+  int l;
+  int ll;
 };
 
-char *s21_stoi(char *str, int *number);
-char *s21_stof(char *str, double *number);
-char *parse_format(struct Format_Spec *fs, char *format);
+typedef struct mods mods;
+
+typedef struct {
+  int format;
+  long count;
+  int end;
+  int supr;
+  int wid;
+  int len;
+  int err;
+  char buff;
+} ops;
+
 int s21_sscanf(const char *str, const char *format, ...);
+int opd(va_list args, ops *op, char **src, int base);
+int opu(va_list args, ops *op, char **src, int base);
+int opf(va_list args, ops *op, char **src);
+int opp(va_list args, ops *op, char **src);
+int opc(va_list args, ops *op, char **src);
+int opst(va_list args, ops *op, char **src);
+void oksym(char **src, ops *op);
+void oppe(char **src, ops *op, const char *format);
+int optionsin(char **src, ops *op, const char *format);
+void opn(va_list args, ops *op);
+void casenon(char **src, ops *op, const char *format);
+int isbreak(va_list args, ops *op, char **src, const char *format);
+int processformat(va_list args, ops *op, char **src, const char *format);
+void check_buffer(char **src, ops *op);
+long s21_atoi(char *str, char **strlim, int base);
+unsigned long s21_atoul(char *str, char **strlim, int base);
+long double s21_atold(char *str, char **strlim);
+float s21_atof(char *str, char **strlim);
+double s21_atod(char *str, char **strlim);
 
-
-#endif
+#endif  // SRC_HEADERS_S21_SSCANF_H_

@@ -1,13 +1,13 @@
-#include <stdbool.h> 
-#include "./io/s21_sprintf.h"
-#include "./io/s21_sscanf.h"
-#include "./specials/s21_specials.h"
 #ifndef _S21_STRING
 #define _S21_STRING
+
 
 typedef unsigned long int s21_size_t;
 #define S21_NULL ((void*)0)
 
+#include "io/s21_sprintf.h"
+#include "io/s21_sscanf.h"
+#include "specials/s21_specials.h"
 
 void *s21_memchr(const void *str, int c, s21_size_t n);
 int s21_memcmp(const void *str1, const void *str2, s21_size_t n);
