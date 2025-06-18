@@ -2,8 +2,8 @@
 
 int s21_memcmp(const void *str1, const void *str2, s21_size_t n) {
   if (n == 0) return 0;
-  if(str1 == S21_NULL || str2 == S21_NULL) return 0;  
-  
+  if (str1 == S21_NULL || str2 == S21_NULL) return 0;
+
   if (str1 == str2) return 0;
 
   const unsigned char *first_string = (const unsigned char *)str1;

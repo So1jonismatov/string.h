@@ -1,4 +1,5 @@
-#include "s21_string.h"
+#include "s21_sscanf.h"
+
 #include <ctype.h>
 #include <limits.h>
 #include <math.h>
@@ -6,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <wchar.h>
+
+#include "../s21_string.h"
 
 char *s21_strcpy(char *destptr, const char *srcptr) {
   int srcptrLength = s21_strlen(srcptr);
@@ -17,9 +20,7 @@ char *s21_strcpy(char *destptr, const char *srcptr) {
   return destptr;
 }
 
-
 int s21_sscanf(const char *str, const char *format, ...) {
-
   int res = 0;
   ops options = {0, 0, 0, 0, 0, 0, 0, '\0'};
   char *tmp = malloc((s21_strlen(str) + 1) * sizeof(char));

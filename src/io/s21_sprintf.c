@@ -1,4 +1,6 @@
 
+#include "s21_sprintf.h"
+
 #include <limits.h>
 #include <locale.h>
 #include <math.h>
@@ -6,7 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include "s21_string.h"
+
+#include "../s21_string.h"
 
 char *s21_strcat(char *destptr, const char *srcptr) {
   int destptrLength = s21_strlen(destptr);
@@ -38,9 +41,6 @@ void *s21_memmove(void *dest, const void *src, s21_size_t size) {
 
   return dest;
 }
-
-
-
 
 int s21_sprintf(char *str, const char *format, ...) {
   str[0] = '\0';
@@ -234,7 +234,6 @@ char *s21_reverse(char *str) {
   }
   return str;
 }
-
 
 char *s21_ptoa(char *str, int *variable) {
   int *aux = variable;

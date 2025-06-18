@@ -2,15 +2,14 @@
 #define SRC_HEADERS_S21_SSCANF_H_
 #include <stdarg.h>
 
-struct mods {
+typedef struct  {
   int len;
   int skip;
   int h;
   int l;
   int ll;
-};
+} mods;
 
-typedef struct mods mods;
 
 typedef struct {
   int format;

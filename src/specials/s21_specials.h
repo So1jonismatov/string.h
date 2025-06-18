@@ -1,6 +1,6 @@
 #ifndef S21_SPECIALS
 #define S21_SPECIALS
-#include "s21_string.h"
+#include "../s21_string.h"
 
 void *s21_insert(const char *src, const char *str, s21_size_t start_index);
 void *s21_to_lower(const char *str);
