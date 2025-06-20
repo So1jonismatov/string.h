@@ -1,14 +1,18 @@
 #include "s21_string.h"
-#include "s21_utils.h"
 
-char *s21_strncat(char *dest, const char *src, s21_size_t n) {
-  if (dest == S21_NULL || src == S21_NULL) return S21_NULL;
+char *s21_strncat(char *result, const char *str, s21_size_t size) {
+  int strLength = s21_strlen(str);
 
-  char *destination = dest;
-  s21_size_t len = min(s21_strlen(src), n);
+  for (s21_size_t x = 0; x < size && str[x] != '\0'; x += 1) {
+    result[strLength + x] = str[x];
+    result[strLength + x + 1] = '\0';
+  }
 
-  s21_memcpy(destination, src, len);
-  *(destination + len) = '\0';
+  for (int x = 0, strLength = s21_strlen(str); x < size && str[x] != '\0';
+       x += 1) {
+    result[strLength + x] = str[x];
+    result[strLength + x + 1] = '\0';
+  }
 
-  return dest;
+  return result;
 }

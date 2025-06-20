@@ -1,5 +1,6 @@
 #ifndef _S21_STRING_TESTS
 #define _S21_STRING_TESTS
+#include <check.h>
 
 Suite *s21_memchr_suite();
 Suite *s21_memcmp_suite();

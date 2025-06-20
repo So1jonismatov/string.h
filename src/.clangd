@@ -1,0 +1,9 @@
+
+CompileFlags:
+  Add:
+    - -xc
+    - -std=c11
+    - -I.
+    - -I./io/
+    - -I./specials/
+    - -D_POSIX_C_SOURCE=200809L

@@ -10,14 +10,40 @@
 
 #include "../s21_string.h"
 
-char *s21_strcpy(char *destptr, const char *srcptr) {
-  int srcptrLength = s21_strlen(srcptr);
-
-  for (int x = 0; x <= srcptrLength; x += 1) {
-    destptr[x] = srcptr[x];
-  }
-
-  return destptr;
+int opst(va_list args, ops *op, char **src) {
+    int res = 0;
+    char *new_str = malloc(sizeof(char));
+    if (!new_str) return 0; // Exit on allocation failure
+    new_str[0] = '\0';
+    oksym(src, op);
+    int i = 0;
+    int chars_scanned = 0;
+    for (; **src && **src != ' ' && **src != '\n' && **src != '\t' && **src != '\r' &&
+           **src != '\x0B' && **src != '\f' && (op->wid == 0 || i < op->wid);
+         i++, (*src)++, chars_scanned++) {
+        char *tmp = realloc(new_str, (i + 2) * sizeof(char));
+        if (!tmp) {
+            free(new_str);
+            return 0; // Exit on realloc failure
+        }
+        new_str = tmp;
+        new_str[i] = **src;
+    }
+    new_str[i] = '\0';
+    if (chars_scanned > 0 && !op->supr) {
+        res++;
+        if (!op->len) {
+            char *dest = va_arg(args, char *);
+            if (dest) s21_strcpy(dest, new_str);
+        } else if (op->len == 2) {
+            wchar_t *dest = va_arg(args, wchar_t *);
+            if (dest) mbstowcs(dest, new_str, i + 1);
+        }
+    }
+    free(new_str);
+    op->count += chars_scanned;
+    op->format = 0;
+    return res;
 }
 
 int s21_sscanf(const char *str, const char *format, ...) {
@@ -26,33 +52,33 @@ int s21_sscanf(const char *str, const char *format, ...) {
   char *tmp = malloc((s21_strlen(str) + 1) * sizeof(char));
   if (!tmp) {
     printf("ERROR");
-  } else {
-    tmp = s21_strcpy(tmp, str);
-    oksym(&tmp, &options);
-    if (!*tmp) options.end = 1;
-    tmp = s21_strcpy(tmp - options.count, str);
-    options.count = 0;
-    va_list args;
-    va_start(args, format);
-    for (; *format; format++) {
-      if (optionsin(&tmp, &options, format)) continue;
-      if (options.format) {
-        if ((int)*format > 47 && (int)*format < 58) {
-          options.wid = options.wid * 10 + (int)*format - 48;
-          continue;
-        }
-        res += processformat(args, &options, &tmp, format);
-      } else {
-        casenon(&tmp, &options, format);
-      }
-      if (isbreak(args, &options, &tmp, format)) {
-        if (!res && options.end) res = -1;
-        break;
-      }
-    }
-    free(tmp - options.count);
-    va_end(args);
+    return -1; // Return error on allocation failure
   }
+  tmp = s21_strcpy(tmp, str);
+  oksym(&tmp, &options);
+  if (!*tmp) options.end = 1;
+  tmp = s21_strcpy(tmp - options.count, str);
+  options.count = 0;
+  va_list args;
+  va_start(args, format);
+  for (; *format; format++) {
+    if (optionsin(&tmp, &options, format)) continue;
+    if (options.format) {
+      if ((int)*format > 47 && (int)*format < 58) {
+        options.wid = options.wid * 10 + (int)*format - 48;
+        continue;
+      }
+      res += processformat(args, &options, &tmp, format);
+    } else {
+      casenon(&tmp, &options, format);
+    }
+    if (isbreak(args, &options, &tmp, format)) {
+      if (!res && options.end) res = -1; // Return -1 if no assignments and end reached
+      break;
+    }
+  }
+  free(tmp - options.count);
+  va_end(args);
   return res;
 }
 
@@ -355,45 +381,6 @@ int opc(va_list args, ops *op, char **src) {
   return res;
 }
 
-int opst(va_list args, ops *op, char **src) {
-  int res = 0;
-  char *new_str = malloc(sizeof(char));
-  if (new_str) {
-    oksym(src, op);
-    int i = 0;
-    for (; **src && **src != ' ' && **src != '\n' && **src != '\t' &&
-           **src != '\r' && **src != '\x0B' && **src != '\f' &&
-           (op->wid == 0 || i < op->wid);
-         i++, (*src)++) {
-      new_str[i] = **src;
-      new_str = realloc(new_str, (i + 2) * sizeof(char));
-      if (!new_str) exit(0);
-    }
-    new_str[i] = '\0';
-    int k = s21_strlen(new_str) + 1;
-    va_list tmp_list;
-    va_copy(tmp_list, args);
-    for (int j = 0; j < k; j++) {
-      if (!op->supr) {
-        if (!op->len) *((char *)va_arg(tmp_list, char *) + j) = new_str[j];
-        if (j + 1 < k) {
-          va_end(tmp_list);
-          va_copy(tmp_list, args);
-        }
-      }
-    }
-    va_end(args);
-    va_copy(args, tmp_list);
-    if (op->len == 2 && !op->supr)
-      mbstowcs((wchar_t *)va_arg(args, wchar_t *), new_str, k);
-    free(new_str);
-    if (!op->supr) res++;
-    op->count += k - 1;
-    op->format = 0;
-    va_end(tmp_list);
-  }
-  return res;
-}
 
 void oksym(char **src, ops *op) {
   while (**src == ' ' || **src == '\n' || **src == '\t' || **src == '\r' ||
@@ -461,16 +448,14 @@ int isbreak(va_list args, ops *op, char **src, const char *format) {
   int res = 0;
   va_list backup;
   va_copy(backup, args);
-  if ((!**src && !op->buff &&
-       (s21_strstr(format, "%n") != s21_strchr(format, '%') ||
-        !s21_strstr(format, "%n"))) ||
-      !va_arg(backup, void *) || op->err) {
+  if ((!**src && !op->buff && (s21_strstr(format, "%n") != s21_strchr(format, '%') ||
+                               !s21_strstr(format, "%n"))) ||
+      (!va_arg(backup, void *) && !op->err) || op->err) {
     res = 1;
   }
   va_end(backup);
   return res;
 }
-
 int processformat(va_list args, ops *op, char **src, const char *format) {
   int res = 0;
   switch (*format) {

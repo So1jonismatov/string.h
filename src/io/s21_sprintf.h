@@ -17,9 +17,9 @@ int insertStringBySpecifier(char *str, char symbol, spec config,
 int setBaseAccuracyValue(int accuracy, int symbol);
 
 int s21_ctos(char *str, va_list *params, char *flag, int accuracy, char type);
-char *s21_conf(char *str, spec config, char symbol);
+char *s21_conf(char *str, spec config, char symbol, int* pad_len);
 char *s21_stos(char *str, va_list *params, int accuracy, char type);
-char *s21_ptoa(char *str, int *variable);
+char *s21_ptoa(char *str, void *variable);
 char *s21_itoa(char *str, int number, int accuracy, char *flag);
 char *s21_itoa_long(char *str, long int number, int accuracy, char *flag);
 char *s21_itoa_short(char *str, short int number, int accuracy, char *flag);

@@ -1,6 +1,4 @@
 #include "tests.h"
-
-#include <check.h>
 #include <stdio.h>
 
 int main() {
