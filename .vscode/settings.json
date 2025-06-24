@@ -1,0 +1,11 @@
+{
+    "C_Cpp.errorSquiggles": "disabled",
+    "files.associations": {
+        "sstream": "c",
+        "algorithm": "cpp",
+        "s21_string.h": "c",
+        "s21_sprintf.h": "c",
+        "s21_sscanf.h": "c",
+        "s21_specials.h": "c"
+    }
+}

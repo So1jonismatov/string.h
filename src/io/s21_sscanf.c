@@ -1,0 +1,524 @@
+#include "s21_sscanf.h"
+
+#include <ctype.h>
+#include <limits.h>
+#include <math.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <wchar.h>
+
+#include "../s21_string.h"
+
+int opst(va_list args, ops *op, char **src) {
+  int res = 0;
+  char *new_str = malloc(sizeof(char));
+  if (!new_str) return 0;  // Exit on allocation failure
+  new_str[0] = '\0';
+  oksym(src, op);
+  int i = 0;
+  int chars_scanned = 0;
+  for (; **src && **src != ' ' && **src != '\n' && **src != '\t' &&
+         **src != '\r' && **src != '\x0B' && **src != '\f' &&
+         (op->wid == 0 || i < op->wid);
+       i++, (*src)++, chars_scanned++) {
+    char *tmp = realloc(new_str, (i + 2) * sizeof(char));
+    if (!tmp) {
+      free(new_str);
+      return 0;  // Exit on realloc failure
+    }
+    new_str = tmp;
+    new_str[i] = **src;
+  }
+  new_str[i] = '\0';
+  if (chars_scanned > 0 && !op->supr) {
+    res++;
+    if (!op->len) {
+      char *dest = va_arg(args, char *);
+      if (dest) s21_strcpy(dest, new_str);
+    } else if (op->len == 2) {
+      wchar_t *dest = va_arg(args, wchar_t *);
+      if (dest) mbstowcs(dest, new_str, i + 1);
+    }
+  }
+  free(new_str);
+  op->count += chars_scanned;
+  op->format = 0;
+  return res;
+}
+
+int s21_sscanf(const char *str, const char *format, ...) {
+  int res = 0;
+  ops options = {0, 0, 0, 0, 0, 0, 0, '\0'};
+  char *tmp = malloc((s21_strlen(str) + 1) * sizeof(char));
+  if (!tmp) {
+    printf("ERROR");
+    return -1;  // Return error on allocation failure
+  }
+  tmp = s21_strcpy(tmp, str);
+  oksym(&tmp, &options);
+  if (!*tmp) options.end = 1;
+  tmp = s21_strcpy(tmp - options.count, str);
+  options.count = 0;
+  va_list args;
+  va_start(args, format);
+  for (; *format; format++) {
+    if (optionsin(&tmp, &options, format)) continue;
+    if (options.format) {
+      if ((int)*format > 47 && (int)*format < 58) {
+        options.wid = options.wid * 10 + (int)*format - 48;
+        continue;
+      }
+      res += processformat(args, &options, &tmp, format);
+    } else {
+      casenon(&tmp, &options, format);
+    }
+    if (isbreak(args, &options, &tmp, format)) {
+      if (!res && options.end)
+        res = -1;  // Return -1 if no assignments and end reached
+      break;
+    }
+  }
+  free(tmp - options.count);
+  va_end(args);
+  return res;
+}
+
+long s21_atoi(char *str, char **strlim, int base) {
+  char *start = str;
+  long int res = 0;
+  int sign = 1;
+  while (*str == ' ' || *str == '\n' || *str == '\t' || *str == '\r' ||
+         *str == '\x0B' || *str == '\f')
+    str++;
+  if (*str == '+') str++;
+  if (*str == '-') {
+    sign = -1;
+    str++;
+  }
+  if (base == 0 && *str == '0' && *(str + 1) == 'x')
+    base = 16;
+  else if (base == 0 && *str == '0')
+    base = 8;
+  else if (base == 0)
+    base = 10;
+  if (base == 16 && *str == '0' && *(str + 1) == 'x') str += 2;
+  if (base == 10) {
+    for (; *str >= '0' && *str <= '9'; str++, res *= 10) res += *str - 48;
+    res /= 10;
+  } else if (base == 8) {
+    for (; *str >= '0' && *str <= '9'; str++, res *= 8) res += *str - 48;
+    res /= 8;
+  } else if (base == 16) {
+    for (; (*str >= '0' && *str <= '9') || (*str >= 'A' && *str <= 'F') ||
+           (*str >= 'a' && *str <= 'f');
+         str++, res *= 16) {
+      if (*str >= '0' && *str <= '9')
+        res += *str - 48;
+      else if ((*str >= 'A' && *str <= 'F'))
+        res += +*str - 55;
+      else
+        res += +*str - 87;
+    }
+    res /= 16;
+  }
+  if (strlim) *strlim = start + (str - start);
+  return sign * res;
+}
+
+unsigned long s21_atoul(char *str, char **strlim, int base) {
+  return s21_atoi(str, strlim, base);
+}
+
+float s21_atof(char *str, char **strlim) {
+  char *start = str;
+  float a, decplace, b;
+  int sign = 1;
+  while (*str == ' ' || *str == '\n' || *str == '\t' || *str == '\r' ||
+         *str == '\x0B' || *str == '\f')
+    ++str;
+  if (*str == '+') ++str;
+  if (*str == '-') {
+    sign = -1;
+    ++str;
+  }
+  for (a = 0; *str && isdigit(*str); ++str) a = a * 10 + (*str - '0');
+  if (*str == '.') ++str;
+  for (decplace = 1.; *str && isdigit(*str); ++str, decplace *= 10.)
+    a = a * 10. + (*str - '0');
+  if (*str == 'e' || *str == 'E') {
+    int esign = 1;
+    if (a <= 1e-6) a = 1;
+    ++str;
+    if (*str == '-') {
+      esign = -1;
+      ++str;
+    }
+    if (*str == '+') ++str;
+    for (b = 0; *str && isdigit(*str); ++str) b = b * 10 + (*str - '0');
+    b *= esign;
+  } else {
+    b = 0;
+  }
+  if ((*str == 'n' || *str == 'N') && (str[1] == 'a' || str[1] == 'A') &&
+      (str[2] == 'n' || str[2] == 'N')) {
+    str += 3;
+    a = NAN * sign;
+  }
+  if ((*str == 'i' || *str == 'I') && (str[1] == 'n' || str[1] == 'N') &&
+      (str[2] == 'f' || str[2] == 'F')) {
+    str += 3;
+    a = INFINITY * sign;
+  }
+  if (strlim) *strlim = start + (str - start);
+  return (isnan(a) || isinf(a)) ? a : (a * sign / decplace) * powl(10, b);
+}
+
+double s21_atod(char *str, char **strlim) {
+  char *start = str;
+  double a, decplace, b;
+  int sign = 1;
+  while (*str == ' ' || *str == '\n' || *str == '\t' || *str == '\r' ||
+         *str == '\x0B' || *str == '\f')
+    ++str;
+  if (*str == '+') ++str;
+  if (*str == '-') {
+    sign = -1;
+    ++str;
+  }
+  for (a = 0; *str && isdigit(*str); ++str) a = a * 10 + (*str - '0');
+  if (*str == '.') ++str;
+  for (decplace = 1.; *str && isdigit(*str); ++str, decplace *= 10.)
+    a = a * 10. + (*str - '0');
+  if (*str == 'e' || *str == 'E') {
+    int esign = 1;
+    if (a <= 1e-6) a = 1;
+    ++str;
+    if (*str == '-') {
+      esign = -1;
+      ++str;
+    }
+    if (*str == '+') ++str;
+    for (b = 0; *str && isdigit(*str); ++str) b = b * 10 + (*str - '0');
+    b *= esign;
+  } else {
+    b = 0;
+  }
+  if ((*str == 'n' || *str == 'N') && (str[1] == 'a' || str[1] == 'A') &&
+      (str[2] == 'n' || str[2] == 'N')) {
+    str += 3;
+    a = NAN * sign;
+  }
+  if ((*str == 'i' || *str == 'I') && (str[1] == 'n' || str[1] == 'N') &&
+      (str[2] == 'f' || str[2] == 'F')) {
+    str += 3;
+    a = INFINITY * sign;
+  }
+  if (strlim) *strlim = start + (str - start);
+  return (isnan(a) || isinf(a)) ? a : (a * sign / decplace) * powl(10, b);
+}
+
+long double s21_atold(char *str, char **strlim) {
+  char *start = str;
+  long double a, decplace, b;
+  int sign = 1;
+  while (*str == ' ' || *str == '\n' || *str == '\t' || *str == '\r' ||
+         *str == '\x0B' || *str == '\f')
+    ++str;
+  if (*str == '+') ++str;
+  if (*str == '-') {
+    sign = -1;
+    ++str;
+  }
+  for (a = 0; *str && isdigit(*str); ++str) a = a * 10 + (*str - '0');
+  if (*str == '.') ++str;
+  for (decplace = 1.; *str && isdigit(*str); ++str, decplace *= 10.)
+    a = a * 10. + (*str - '0');
+  if (*str == 'e' || *str == 'E') {
+    int esign = 1;
+    if (a <= 1e-6) a = 1;
+    ++str;
+    if (*str == '-') {
+      esign = -1;
+      ++str;
+    }
+    if (*str == '+') ++str;
+    for (b = 0; *str && isdigit(*str); ++str) b = b * 10 + (*str - '0');
+    b *= esign;
+  } else {
+    b = 0;
+  }
+  if ((*str == 'n' || *str == 'N') && (str[1] == 'a' || str[1] == 'A') &&
+      (str[2] == 'n' || str[2] == 'N')) {
+    str += 3;
+    a = NAN * sign;
+  }
+  if ((*str == 'i' || *str == 'I') && (str[1] == 'n' || str[1] == 'N') &&
+      (str[2] == 'f' || str[2] == 'F')) {
+    str += 3;
+    a = INFINITY * sign;
+  }
+  if (strlim) *strlim = start + (str - start);
+  return (isnan(a) || isinf(a)) ? a : (a * sign / decplace) * powl(10, b);
+}
+
+int opd(va_list args, ops *op, char **src, int base) {
+  int res = 0;
+  char *strlim;
+  check_buffer(src, op);
+  if (s21_atoi(*src, S21_NULL, base) ||
+      *(*src + s21_strspn(*src, "\n\t \f\x0B\r+-")) == '0') {
+    if (!op->supr) {
+      res++;
+      if (op->len == 1)
+        *(short int *)va_arg(args, void *) = s21_atoi(*src, &strlim, base);
+      else if (op->len == 2)
+        *(long int *)va_arg(args, void *) = s21_atoi(*src, &strlim, base);
+      else
+        *(int *)va_arg(args, void *) = s21_atoi(*src, &strlim, base);
+    } else {
+      s21_atoi(*src, &strlim, base);
+    }
+    op->count += strlim - *src;
+    *src = strlim;
+  } else {
+    op->err = 1;
+  }
+  op->format = 0;
+  return res;
+}
+
+int opu(va_list args, ops *op, char **src, int base) {
+  int res = 0;
+  char *strlim;
+  check_buffer(src, op);
+  if (s21_atoul(*src, S21_NULL, base) ||
+      *(*src + s21_strspn(*src, "\n\t \f\x0B\r+")) == '0') {
+    if (!op->supr) {
+      if (s21_atoul(*src, S21_NULL, base) || **src == '0') res++;
+      if (op->len == 1)
+        *(short unsigned *)va_arg(args, void *) =
+            s21_atoul(*src, &strlim, base);
+      else if (op->len == 2)
+        *(long unsigned *)va_arg(args, void *) = s21_atoul(*src, &strlim, base);
+      else
+        *(unsigned *)va_arg(args, void *) = s21_atoul(*src, &strlim, base);
+    } else {
+      s21_atoul(*src, &strlim, base);
+    }
+    op->count += strlim - *src;
+    *src = strlim;
+  } else {
+    op->err = 1;
+  }
+  op->format = 0;
+  return res;
+}
+
+int opf(va_list args, ops *op, char **src) {
+  int res = 0;
+  char *strlim;
+  check_buffer(src, op);
+  if (fabs(s21_atod(*src, S21_NULL)) >= 1e-100 ||
+      isnan(s21_atod(*src, S21_NULL)) ||
+      *(*src + s21_strspn(*src, "\n\t \f\x0B\r+-")) == '0') {
+    if (!op->supr) {
+      res++;
+      if (op->len == 3)
+        *(long double *)va_arg(args, void *) = s21_atold(*src, &strlim);
+      else if (op->len == 2)
+        *(double *)va_arg(args, void *) = s21_atod(*src, &strlim);
+      else
+        *(float *)va_arg(args, void *) = s21_atof(*src, &strlim);
+    } else {
+      s21_atof(*src, &strlim);
+    }
+    op->count += strlim - *src;
+    *src = strlim;
+  } else {
+    op->err = 1;
+  }
+  op->format = 0;
+  return res;
+}
+
+int opp(va_list args, ops *op, char **src) {
+  int res = 0;
+  char *strlim;
+  if (s21_atoul(*src, S21_NULL, 16) ||
+      *(*src + s21_strspn(*src, "\n\t \f\x0B\r+-")) == '0') {
+    check_buffer(src, op);
+    if (!op->supr) {
+      if (s21_atoul(*src, S21_NULL, 16) || **src == '0') res++;
+      *(void **)va_arg(args, void **) = (void *)s21_atoul(*src, &strlim, 16);
+    } else {
+      s21_atoul(*src, &strlim, 16);
+    }
+    op->count += strlim - *src;
+    *src = strlim;
+  } else {
+    op->err = 1;
+  }
+  op->format = 0;
+  return res;
+}
+
+int opc(va_list args, ops *op, char **src) {
+  int res = 0;
+  if (!op->wid) op->wid = 2;
+  if (!op->supr) {
+    res++;
+    if (op->len == 2)
+      mbtowc((wchar_t *)va_arg(args, wchar_t *), *src, op->wid);
+    else
+      *(char *)va_arg(args, char *) = **src;
+  }
+  if (**src < 0 && op->len == 2) {
+    (*src)++;
+    op->count++;
+  }
+  (*src)++;
+  op->count++;
+  op->format = 0;
+  return res;
+}
+
+void oksym(char **src, ops *op) {
+  while (**src == ' ' || **src == '\n' || **src == '\t' || **src == '\r' ||
+         **src == '\x0B' || **src == '\f') {
+    (*src)++;
+    op->count++;
+  }
+}
+
+void oppe(char **src, ops *op, const char *format) {
+  oksym(src, op);
+  if (*format == **src) {
+    op->count++;
+    (*src)++;
+  } else {
+    op->err = 1;
+  }
+  op->format = 0;
+}
+
+int optionsin(char **src, ops *op, const char *format) {
+  int res = 0;
+  if (*format == '%' && !op->format) {
+    res++;
+    op->format = 1;
+    op->supr = 0;
+    op->len = 0;
+    if (op->buff) {
+      *(*src + s21_strlen(*src)) = op->buff;
+      op->buff = '\0';
+    }
+    op->wid = 0;
+  }
+  return res;
+}
+
+void opn(va_list args, ops *op) {
+  if (!op->supr) {
+    if (op->len == 1)
+      *(short int *)va_arg(args, void *) = op->count;
+    else if (op->len == 2)
+      *(long int *)va_arg(args, void *) = op->count;
+    else
+      *(int *)va_arg(args, void *) = op->count;
+  }
+  op->format = 0;
+}
+
+void casenon(char **src, ops *op, const char *format) {
+  if (*format == ' ' || *format == '\t' || *format == '\n' || *format == '\r' ||
+      *format == '\x0B') {
+    while (*format == **src) {
+      (*src)++;
+      op->count++;
+    }
+  } else if (**src == *format) {
+    (*src)++;
+    op->count++;
+  } else {
+    op->err = 1;
+  }
+}
+
+int isbreak(va_list args, ops *op, char **src, const char *format) {
+  int res = 0;
+  va_list backup;
+  va_copy(backup, args);
+  if ((!**src && !op->buff &&
+       (s21_strstr(format, "%n") != s21_strchr(format, '%') ||
+        !s21_strstr(format, "%n"))) ||
+      (!va_arg(backup, void *) && !op->err) || op->err) {
+    res = 1;
+  }
+  va_end(backup);
+  return res;
+}
+int processformat(va_list args, ops *op, char **src, const char *format) {
+  int res = 0;
+  switch (*format) {
+    case 'x':
+    case 'X':
+      res += opu(args, op, src, 16);
+      break;
+    case 'p':
+      res += opp(args, op, src);
+      break;
+    case 'e':
+    case 'E':
+    case 'f':
+    case 'g':
+    case 'G':
+      res += opf(args, op, src);
+      break;
+    case 'c':
+      res += opc(args, op, src);
+      break;
+    case 'd':
+      res += opd(args, op, src, 10);
+      break;
+    case 'i':
+      res += opd(args, op, src, 0);
+      break;
+    case 'o':
+      res += opu(args, op, src, 8);
+      break;
+    case 's':
+      res += opst(args, op, src);
+      break;
+    case 'u':
+      res += opu(args, op, src, 10);
+      break;
+    case 'n':
+      opn(args, op);
+      break;
+    case '%':
+      oppe(src, op, format);
+      break;
+    case 'h':
+      op->len = 1;
+      break;
+    case '*':
+      op->supr = 1;
+      break;
+    case 'l':
+      op->len = 2;
+      break;
+    case 'L':
+      op->len = 3;
+      break;
+  }
+  return res;
+}
+
+void check_buffer(char **src, ops *op) {
+  oksym(src, op);
+  if (!op->buff && op->wid && op->wid < (int)s21_strlen(*src)) {
+    op->buff = *(*src + op->wid);
+    *(*src + op->wid) = '\0';
+  }
+}
