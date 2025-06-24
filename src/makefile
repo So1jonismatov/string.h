@@ -1,7 +1,7 @@
 # Compiler and linker flags
-CFLAGS =  -std=c11 -pedantic
-COV_CFLAGS = -fprofile-arcs -ftest-coverage
-LDFLAGS = -lcheck -lm -lsubunit
+CFLAGS = -Wall -Werror -Wextra -std=c11 -pedantic
+COV_CFLAGS = -fprofile-arcs -ftest-coverage -lgcov
+LDFLAGS = -lcheck -lm -lsubunit -lcheck_pic -pthread -lrt -lgcov
 
 # Source and object files
 SOURCES = s21_memchr.c s21_memcmp.c s21_memcpy.c s21_memset.c s21_strlen.c s21_strcpy.c \
@@ -19,7 +19,7 @@ TEST_SOURCES = tests/test_s21_io.c tests/test_s21_memchr.c tests/test_s21_memcmp
                tests/test_s21_strstr.c tests/test_s21_strtok.c tests/tests.c
 TEST_OBJS = $(TEST_SOURCES:.c=.o)
 
-all: s21_string.a test gcov_report
+all: s21_string.a test
 
 s21_string.a: $(OBJECTS)
 	ar rcs s21_string.a $(OBJECTS)
@@ -40,4 +40,8 @@ clean:
 	rm -rf $(OBJECTS) $(TEST_OBJS) s21_string.a test_runner *.gcno *.gcda *.gcov */*.gcno */*.gcda */*.gcov *.o */*.o
 	rm -rf gcov_report
 
-.PHONY: all test gcov_report clean
+format:
+	clang-format -i *.c */*.c
+	clang-format -n *.c */*.c
+
+.PHONY: all test gcov_report clean format

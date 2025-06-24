@@ -20,7 +20,6 @@ START_TEST(test_s21_strncat_zero) {
 }
 END_TEST
 
-
 Suite *s21_strncat_suite(void) {
   Suite *s = suite_create("strncat_suite");
   TCase *tc = tcase_create("strncat_tcs");

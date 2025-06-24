@@ -11,39 +11,40 @@
 #include "../s21_string.h"
 
 int opst(va_list args, ops *op, char **src) {
-    int res = 0;
-    char *new_str = malloc(sizeof(char));
-    if (!new_str) return 0; // Exit on allocation failure
-    new_str[0] = '\0';
-    oksym(src, op);
-    int i = 0;
-    int chars_scanned = 0;
-    for (; **src && **src != ' ' && **src != '\n' && **src != '\t' && **src != '\r' &&
-           **src != '\x0B' && **src != '\f' && (op->wid == 0 || i < op->wid);
-         i++, (*src)++, chars_scanned++) {
-        char *tmp = realloc(new_str, (i + 2) * sizeof(char));
-        if (!tmp) {
-            free(new_str);
-            return 0; // Exit on realloc failure
-        }
-        new_str = tmp;
-        new_str[i] = **src;
+  int res = 0;
+  char *new_str = malloc(sizeof(char));
+  if (!new_str) return 0;  // Exit on allocation failure
+  new_str[0] = '\0';
+  oksym(src, op);
+  int i = 0;
+  int chars_scanned = 0;
+  for (; **src && **src != ' ' && **src != '\n' && **src != '\t' &&
+         **src != '\r' && **src != '\x0B' && **src != '\f' &&
+         (op->wid == 0 || i < op->wid);
+       i++, (*src)++, chars_scanned++) {
+    char *tmp = realloc(new_str, (i + 2) * sizeof(char));
+    if (!tmp) {
+      free(new_str);
+      return 0;  // Exit on realloc failure
     }
-    new_str[i] = '\0';
-    if (chars_scanned > 0 && !op->supr) {
-        res++;
-        if (!op->len) {
-            char *dest = va_arg(args, char *);
-            if (dest) s21_strcpy(dest, new_str);
-        } else if (op->len == 2) {
-            wchar_t *dest = va_arg(args, wchar_t *);
-            if (dest) mbstowcs(dest, new_str, i + 1);
-        }
+    new_str = tmp;
+    new_str[i] = **src;
+  }
+  new_str[i] = '\0';
+  if (chars_scanned > 0 && !op->supr) {
+    res++;
+    if (!op->len) {
+      char *dest = va_arg(args, char *);
+      if (dest) s21_strcpy(dest, new_str);
+    } else if (op->len == 2) {
+      wchar_t *dest = va_arg(args, wchar_t *);
+      if (dest) mbstowcs(dest, new_str, i + 1);
     }
-    free(new_str);
-    op->count += chars_scanned;
-    op->format = 0;
-    return res;
+  }
+  free(new_str);
+  op->count += chars_scanned;
+  op->format = 0;
+  return res;
 }
 
 int s21_sscanf(const char *str, const char *format, ...) {
@@ -52,7 +53,7 @@ int s21_sscanf(const char *str, const char *format, ...) {
   char *tmp = malloc((s21_strlen(str) + 1) * sizeof(char));
   if (!tmp) {
     printf("ERROR");
-    return -1; // Return error on allocation failure
+    return -1;  // Return error on allocation failure
   }
   tmp = s21_strcpy(tmp, str);
   oksym(&tmp, &options);
@@ -73,7 +74,8 @@ int s21_sscanf(const char *str, const char *format, ...) {
       casenon(&tmp, &options, format);
     }
     if (isbreak(args, &options, &tmp, format)) {
-      if (!res && options.end) res = -1; // Return -1 if no assignments and end reached
+      if (!res && options.end)
+        res = -1;  // Return -1 if no assignments and end reached
       break;
     }
   }
@@ -381,7 +383,6 @@ int opc(va_list args, ops *op, char **src) {
   return res;
 }
 
-
 void oksym(char **src, ops *op) {
   while (**src == ' ' || **src == '\n' || **src == '\t' || **src == '\r' ||
          **src == '\x0B' || **src == '\f') {
@@ -448,8 +449,9 @@ int isbreak(va_list args, ops *op, char **src, const char *format) {
   int res = 0;
   va_list backup;
   va_copy(backup, args);
-  if ((!**src && !op->buff && (s21_strstr(format, "%n") != s21_strchr(format, '%') ||
-                               !s21_strstr(format, "%n"))) ||
+  if ((!**src && !op->buff &&
+       (s21_strstr(format, "%n") != s21_strchr(format, '%') ||
+        !s21_strstr(format, "%n"))) ||
       (!va_arg(backup, void *) && !op->err) || op->err) {
     res = 1;
   }

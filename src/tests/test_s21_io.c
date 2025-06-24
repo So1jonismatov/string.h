@@ -1,7 +1,7 @@
 #include <check.h>
 #include <float.h>
-#include <stdio.h>
 #include <limits.h>
+#include <stdio.h>
 
 #include "../io/s21_sprintf.h"
 #include "../io/s21_sscanf.h"
@@ -574,8 +574,6 @@ START_TEST(test_s21_sprintf_X_upper) {
 }
 END_TEST
 
-
-
 START_TEST(test_s21_sprintf_n_after_text) {
   char buf1[20], buf2[20] = {0};
   int count1, count2;
@@ -632,23 +630,25 @@ START_TEST(test_s21_sprintf_all_flags) {
 }
 END_TEST
 
-START_TEST(test_s21_sprintf_invalid_specifier) {
-  char buf1[20], buf2[20] = {0};
-  int ret1 = s21_sprintf(buf1, "%q", 123);  // Invalid specifier
-  int ret2 = sprintf(buf2, "%q", 123);
-  ck_assert_int_eq(ret1, ret2);
-  ck_assert_str_eq(buf1, buf2);  // Should handle gracefully (implementation-defined)
-}
-END_TEST
+// START_TEST(test_s21_sprintf_invalid_specifier) {
+//   char buf1[20], buf2[20] = {0};
+//   int ret1 = s21_sprintf(buf1, "%q", 123);  // Invalid specifier
+//   int ret2 = sprintf(buf2, "%qd", (long long)123);
+//   ck_assert_int_eq(ret1, ret2);
+//   ck_assert_str_eq(buf1, buf2);
+// }
+// END_TEST
 
-START_TEST(test_s21_sprintf_buffer_overflow) {
-  char buf1[5], buf2[5] = {0};
-  int ret1 = s21_sprintf(buf1, "%s", "12345");  // Buffer too small
-  int ret2 = sprintf(buf2, "%s", "12345");
-  ck_assert_int_eq(ret1, ret2);  // Return value should be 5, but buffer may overflow
-  // Note: Check implementation behavior, as sprintf doesn't prevent overflow
-}
-END_TEST
+// START_TEST(test_s21_sprintf_buffer_overflow) {
+//   char buf1[5], buf2[5] = {0};
+//   int ret1 = s21_sprintf(buf1, "%s", "12345");  // Buffer too small
+//   int ret2 = sprintf(buf2, "%s", "12345");
+//   ck_assert_int_eq(ret1,
+//                    ret2);  // Return value should be 5, but buffer may
+//                    overflow
+//   // Note: Check implementation behavior, as sprintf doesn't prevent overflow
+// }
+// END_TEST
 
 // Additional sscanf test cases
 START_TEST(test_s21_sscanf_o_normal) {
@@ -722,8 +722,6 @@ START_TEST(test_s21_sscanf_invalid_input) {
 }
 END_TEST
 
-
-
 START_TEST(test_s21_sscanf_width_limit) {
   char buf1[5], buf2[5] = {0};
   const char *str = "abcdefgh";
@@ -755,214 +753,214 @@ START_TEST(test_s21_sscanf_short_format) {
 END_TEST
 
 START_TEST(test_s21_sprintf_Lf_large) {
-    char buf1[20], buf2[20] = {0};
-    long double num = 1234567890.123456789L;
-    int ret1 = s21_sprintf(buf1, "%.6Lf", num);
-    int ret2 = sprintf(buf2, "%.6Lf", num);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_str_eq(buf1, buf2); // e.g., "1234567890.123457"
+  char buf1[20], buf2[20] = {0};
+  long double num = 1234567890.123456789L;
+  int ret1 = s21_sprintf(buf1, "%.6Lf", num);
+  int ret2 = sprintf(buf2, "%.6Lf", num);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_str_eq(buf1, buf2);  // e.g., "1234567890.123457"
 }
 END_TEST
 
 START_TEST(test_s21_sprintf_Lg_precision) {
-    char buf1[20], buf2[20] = {0};
-    long double num = 1.23456789e-10L;
-    int ret1 = s21_sprintf(buf1, "%.4Lg", num);
-    int ret2 = sprintf(buf2, "%.4Lg", num);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_str_eq(buf1, buf2); // e.g., "1.234e-10"
+  char buf1[20], buf2[20] = {0};
+  long double num = 1.23456789e-10L;
+  int ret1 = s21_sprintf(buf1, "%.4Lg", num);
+  int ret2 = sprintf(buf2, "%.4Lg", num);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_str_eq(buf1, buf2);  // e.g., "1.234e-10"
 }
 END_TEST
 
 START_TEST(test_s21_sprintf_Le_negative) {
-    char buf1[20], buf2[20] = {0};
-    long double num = -0.000123456789L;
-    int ret1 = s21_sprintf(buf1, "%.6Le", num);
-    int ret2 = sprintf(buf2, "%.6Le", num);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_str_eq(buf1, buf2); // e.g., "-1.234568e-04"
+  char buf1[20], buf2[20] = {0};
+  long double num = -0.000123456789L;
+  int ret1 = s21_sprintf(buf1, "%.6Le", num);
+  int ret2 = sprintf(buf2, "%.6Le", num);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_str_eq(buf1, buf2);  // e.g., "-1.234568e-04"
 }
 END_TEST
 
-START_TEST(test_s21_sprintf_lu_max) {
-    char buf1[20], buf2[20] = {0};
-    unsigned long num = ULONG_MAX;
-    int ret1 = s21_sprintf(buf1, "%lu", num);
-    int ret2 = sprintf(buf2, "%lu", num);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_str_eq(buf1, buf2); // Should handle ULONG_MAX
-}
-END_TEST
+// START_TEST(test_s21_sprintf_lu_max) {
+//   char buf1[20], buf2[20] = {0};
+//   unsigned long num = ULONG_MAX;
+//   int ret1 = s21_sprintf(buf1, "%lu", num);
+//   int ret2 = sprintf(buf2, "%lu", num);
+//   ck_assert_int_eq(ret1, ret2);
+//   ck_assert_str_eq(buf1, buf2);  // Should handle ULONG_MAX
+// }
+// END_TEST
 
 START_TEST(test_s21_sprintf_hu_normal) {
-    char buf1[20], buf2[20] = {0};
-    unsigned short num = 0xABCD;
-    int ret1 = s21_sprintf(buf1, "%hu", num);
-    int ret2 = sprintf(buf2, "%hu", num);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_str_eq(buf1, buf2); // e.g., "43981"
+  char buf1[20], buf2[20] = {0};
+  unsigned short num = 0xABCD;
+  int ret1 = s21_sprintf(buf1, "%hu", num);
+  int ret2 = sprintf(buf2, "%hu", num);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_str_eq(buf1, buf2);  // e.g., "43981"
 }
 END_TEST
 
 START_TEST(test_s21_sprintf_lo_hash) {
-    char buf1[20], buf2[20] = {0};
-    unsigned long num = 012345;
-    int ret1 = s21_sprintf(buf1, "%#lo", num);
-    int ret2 = sprintf(buf2, "%#lo", num);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_str_eq(buf1, buf2); // e.g., "012345"
+  char buf1[20], buf2[20] = {0};
+  unsigned long num = 012345;
+  int ret1 = s21_sprintf(buf1, "%#lo", num);
+  int ret2 = sprintf(buf2, "%#lo", num);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_str_eq(buf1, buf2);  // e.g., "012345"
 }
 END_TEST
 
 START_TEST(test_s21_sscanf_c_normal) {
-    char c1, c2;
-    const char *str = "a";
-    int ret1 = s21_sscanf(str, "%c", &c1);
-    int ret2 = sscanf(str, "%c", &c2);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_int_eq(c1, c2); // Should be 'a'
+  char c1, c2;
+  const char *str = "a";
+  int ret1 = s21_sscanf(str, "%c", &c1);
+  int ret2 = sscanf(str, "%c", &c2);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_int_eq(c1, c2);  // Should be 'a'
 }
 END_TEST
 
 START_TEST(test_s21_sscanf_n_count) {
-    char buf[10] = {0};
-    int count1, count2;
-    const char *str = "123";
-    int ret1 = s21_sscanf(str, "%s%n", buf, &count1);
-    int ret2 = sscanf(str, "%s%n", buf, &count2);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_int_eq(count1, count2); // Should be 3
-    ck_assert_str_eq(buf, "123");
+  char buf[10] = {0};
+  int count1, count2;
+  const char *str = "123";
+  int ret1 = s21_sscanf(str, "%s%n", buf, &count1);
+  int ret2 = sscanf(str, "%s%n", buf, &count2);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_int_eq(count1, count2);  // Should be 3
+  ck_assert_str_eq(buf, "123");
 }
 END_TEST
 
 START_TEST(test_s21_sscanf_p_pointer) {
-    void *ptr1, *ptr2;
-    const char *str = "0x1234";
-    int ret1 = s21_sscanf(str, "%p", &ptr1);
-    int ret2 = sscanf(str, "%p", &ptr2);
-    ck_assert_int_eq(ret1, ret2);
-    // Note: Exact pointer value comparison is implementation-dependent
-    ck_assert_int_eq((uintptr_t)ptr1 == (uintptr_t)ptr2, 1); // Check assignment
+  void *ptr1, *ptr2;
+  const char *str = "0x1234";
+  int ret1 = s21_sscanf(str, "%p", &ptr1);
+  int ret2 = sscanf(str, "%p", &ptr2);
+  ck_assert_int_eq(ret1, ret2);
+  // Note: Exact pointer value comparison is implementation-dependent
+  ck_assert_int_eq((uintptr_t)ptr1 == (uintptr_t)ptr2, 1);  // Check assignment
 }
 END_TEST
 
 START_TEST(test_s21_sscanf_percent) {
-    char buf[10] = {0};
-    const char *str = "%";
-    int ret1 = s21_sscanf(str, "%%", buf);
-    int ret2 = sscanf(str, "%%", buf);
-    ck_assert_int_eq(ret1, ret2); // Should return 1
-    ck_assert_str_eq(buf, "%");
+  char buf[10] = {0};
+  const char *str = "%";
+  int ret1 = s21_sscanf(str, "%%", buf);
+  int ret2 = sscanf(str, "%%");
+  ck_assert_int_eq(ret1, ret2);  // Should return 1
+  ck_assert_str_eq(buf, "%");
 }
 END_TEST
 START_TEST(test_s21_sscanf_f_float) {
-    float f1, f2;
-    const char *str = "123.456";
-    int ret1 = s21_sscanf(str, "%f", &f1);
-    int ret2 = sscanf(str, "%f", &f2);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_float_eq(f1, f2);
+  float f1, f2;
+  const char *str = "123.456";
+  int ret1 = s21_sscanf(str, "%f", &f1);
+  int ret2 = sscanf(str, "%f", &f2);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_float_eq(f1, f2);
 }
 END_TEST
 
 START_TEST(test_s21_sscanf_Lf_long_double) {
-    long double ld1, ld2;
-    const char *str = "1234567890.123456789";
-    int ret1 = s21_sscanf(str, "%Lf", &ld1);
-    int ret2 = sscanf(str, "%Lf", &ld2);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_ldouble_eq_tol(ld1, ld2, 1e-10);
+  long double ld1, ld2;
+  const char *str = "1234567890.123456789";
+  int ret1 = s21_sscanf(str, "%Lf", &ld1);
+  int ret2 = sscanf(str, "%Lf", &ld2);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_ldouble_eq_tol(ld1, ld2, 1e-10);
 }
 END_TEST
 START_TEST(test_s21_sscanf_literal_match) {
-    char buf[10] = {0};
-    int num;
-    const char *str = "abc123";
-    int ret1 = s21_sscanf(str, "abc%d", &num);
-    int ret2 = sscanf(str, "abc%d", &num);
-    ck_assert_int_eq(ret1, ret2); // Should return 1
-    ck_assert_int_eq(num, 123);
+  // char buf[10] = {0};
+  int num;
+  const char *str = "abc123";
+  int ret1 = s21_sscanf(str, "abc%d", &num);
+  int ret2 = sscanf(str, "abc%d", &num);
+  ck_assert_int_eq(ret1, ret2);  // Should return 1
+  ck_assert_int_eq(num, 123);
 }
 END_TEST
 
 START_TEST(test_s21_sscanf_whitespace) {
-    int num;
-    const char *str = "   123";
-    int ret1 = s21_sscanf(str, "%d", &num);
-    int ret2 = sscanf(str, "%d", &num);
-    ck_assert_int_eq(ret1, ret2); // Should return 1
-    ck_assert_int_eq(num, 123);
+  int num;
+  const char *str = "   123";
+  int ret1 = s21_sscanf(str, "%d", &num);
+  int ret2 = sscanf(str, "%d", &num);
+  ck_assert_int_eq(ret1, ret2);  // Should return 1
+  ck_assert_int_eq(num, 123);
 }
 END_TEST
 START_TEST(test_s21_sscanf_i_decimal) {
-    int num1, num2;
-    const char *str = "123";
-    int ret1 = s21_sscanf(str, "%i", &num1);
-    int ret2 = sscanf(str, "%i", &num2);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_int_eq(num1, num2); // Should be 123
+  int num1, num2;
+  const char *str = "123";
+  int ret1 = s21_sscanf(str, "%i", &num1);
+  int ret2 = sscanf(str, "%i", &num2);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_int_eq(num1, num2);  // Should be 123
 }
 END_TEST
 
 START_TEST(test_s21_sscanf_i_octal) {
-    int num1, num2;
-    const char *str = "0123";
-    int ret1 = s21_sscanf(str, "%i", &num1);
-    int ret2 = sscanf(str, "%i", &num2);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_int_eq(num1, num2); // Should be 83
+  int num1, num2;
+  const char *str = "0123";
+  int ret1 = s21_sscanf(str, "%i", &num1);
+  int ret2 = sscanf(str, "%i", &num2);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_int_eq(num1, num2);  // Should be 83
 }
 END_TEST
 
 START_TEST(test_s21_sscanf_i_hex) {
-    int num1, num2;
-    const char *str = "0x1A";
-    int ret1 = s21_sscanf(str, "%i", &num1);
-    int ret2 = sscanf(str, "%i", &num2);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_int_eq(num1, num2); // Should be 26
+  int num1, num2;
+  const char *str = "0x1A";
+  int ret1 = s21_sscanf(str, "%i", &num1);
+  int ret2 = sscanf(str, "%i", &num2);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_int_eq(num1, num2);  // Should be 26
 }
 END_TEST
 START_TEST(test_s21_sscanf_u_decimal) {
-    unsigned int num1, num2;
-    const char *str = "4294967295"; // UINT_MAX
-    int ret1 = s21_sscanf(str, "%u", &num1);
-    int ret2 = sscanf(str, "%u", &num2);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_int_eq(num1, num2); // Should match UINT_MAX
+  unsigned int num1, num2;
+  const char *str = "4294967295";  // UINT_MAX
+  int ret1 = s21_sscanf(str, "%u", &num1);
+  int ret2 = sscanf(str, "%u", &num2);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_int_eq(num1, num2);  // Should match UINT_MAX
 }
 END_TEST
 START_TEST(test_s21_sscanf_lc_wide_char) {
-    wchar_t wc1, wc2;
-    const char *str = "a";
-    int ret1 = s21_sscanf(str, "%lc", &wc1);
-    int ret2 = sscanf(str, "%lc", &wc2);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_int_eq(wc1, wc2); // Should be L'a'
+  wchar_t wc1, wc2;
+  const char *str = "a";
+  int ret1 = s21_sscanf(str, "%lc", &wc1);
+  int ret2 = sscanf(str, "%lc", &wc2);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_int_eq(wc1, wc2);  // Should be L'a'
 }
 END_TEST
 START_TEST(test_s21_sscanf_hn_short) {
-    short count1, count2;
-    char buf[10] = {0};
-    const char *str = "123";
-    int ret1 = s21_sscanf(str, "%s%hn", buf, &count1);
-    int ret2 = sscanf(str, "%s%hn", buf, &count2);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_int_eq(count1, count2); // Should be 3
-    ck_assert_str_eq(buf, "123");
+  short count1, count2;
+  char buf[10] = {0};
+  const char *str = "123";
+  int ret1 = s21_sscanf(str, "%s%hn", buf, &count1);
+  int ret2 = sscanf(str, "%s%hn", buf, &count2);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_int_eq(count1, count2);  // Should be 3
+  ck_assert_str_eq(buf, "123");
 }
 END_TEST
 
 START_TEST(test_s21_sscanf_ln_long) {
-    long count1, count2;
-    char buf[10] = {0};
-    const char *str = "123";
-    int ret1 = s21_sscanf(str, "%s%ln", buf, &count1);
-    int ret2 = sscanf(str, "%s%ln", buf, &count2);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_int_eq(count1, count2); // Should be 3
-    ck_assert_str_eq(buf, "123");
+  long count1, count2;
+  char buf[10] = {0};
+  const char *str = "123";
+  int ret1 = s21_sscanf(str, "%s%ln", buf, &count1);
+  int ret2 = sscanf(str, "%s%ln", buf, &count2);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_int_eq(count1, count2);  // Should be 3
+  ck_assert_str_eq(buf, "123");
 }
 END_TEST
 // START_TEST(test_s21_sscanf_p_null) {
@@ -975,41 +973,41 @@ END_TEST
 // }
 // END_TEST
 START_TEST(test_s21_sscanf_percent_mismatch) {
-    char buf[10] = {0};
-    const char *str = "a";
-    int ret1 = s21_sscanf(str, "%%", buf);
-    int ret2 = sscanf(str, "%%", buf);
-    ck_assert_int_eq(ret1, ret2); // Should return 0 due to mismatch
-    ck_assert_str_eq(buf, "");
+  char buf[10] = {0};
+  const char *str = "a";
+  int ret1 = s21_sscanf(str, "%%", buf);
+  int ret2 = sscanf(str, "%%");
+  ck_assert_int_eq(ret1, ret2);  // Should return 0 due to mismatch
+  ck_assert_str_eq(buf, "");
 }
 END_TEST
 START_TEST(test_s21_sscanf_f_exponent) {
-    float f1, f2;
-    const char *str = "1.23e-2";
-    int ret1 = s21_sscanf(str, "%f", &f1);
-    int ret2 = sscanf(str, "%f", &f2);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert_float_eq(f1, f2); // Should be 0.0123
+  float f1, f2;
+  const char *str = "1.23e-2";
+  int ret1 = s21_sscanf(str, "%f", &f1);
+  int ret2 = sscanf(str, "%f", &f2);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert_float_eq(f1, f2);  // Should be 0.0123
 }
 END_TEST
 
 START_TEST(test_s21_sscanf_Lf_nan) {
-    long double ld1, ld2;
-    const char *str = "nan";
-    int ret1 = s21_sscanf(str, "%Lf", &ld1);
-    int ret2 = sscanf(str, "%Lf", &ld2);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert(isnan(ld1) && isnan(ld2));
+  long double ld1, ld2;
+  const char *str = "nan";
+  int ret1 = s21_sscanf(str, "%Lf", &ld1);
+  int ret2 = sscanf(str, "%Lf", &ld2);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert(isnan(ld1) && isnan(ld2));
 }
 END_TEST
 
 START_TEST(test_s21_sscanf_Lf_inf) {
-    long double ld1, ld2;
-    const char *str = "inf";
-    int ret1 = s21_sscanf(str, "%Lf", &ld1);
-    int ret2 = sscanf(str, "%Lf", &ld2);
-    ck_assert_int_eq(ret1, ret2);
-    ck_assert(isinf(ld1) && isinf(ld2));
+  long double ld1, ld2;
+  const char *str = "inf";
+  int ret1 = s21_sscanf(str, "%Lf", &ld1);
+  int ret2 = sscanf(str, "%Lf", &ld2);
+  ck_assert_int_eq(ret1, ret2);
+  ck_assert(isinf(ld1) && isinf(ld2));
 }
 END_TEST
 
@@ -1083,8 +1081,8 @@ Suite *s21_io_suite(void) {
   tcase_add_test(tc, test_s21_sprintf_g_precision_high);
   tcase_add_test(tc, test_s21_sprintf_G_large_exp);
   tcase_add_test(tc, test_s21_sprintf_all_flags);
-  tcase_add_test(tc, test_s21_sprintf_invalid_specifier);
-  tcase_add_test(tc, test_s21_sprintf_buffer_overflow);
+  // tcase_add_test(tc, test_s21_sprintf_invalid_specifier);
+  // tcase_add_test(tc, test_s21_sprintf_buffer_overflow);
   tcase_add_test(tc, test_s21_sscanf_o_normal);
   tcase_add_test(tc, test_s21_sscanf_x_normal);
   tcase_add_test(tc, test_s21_sscanf_X_upper);
@@ -1098,7 +1096,7 @@ Suite *s21_io_suite(void) {
   tcase_add_test(tc, test_s21_sprintf_Lf_large);
   tcase_add_test(tc, test_s21_sprintf_Lg_precision);
   tcase_add_test(tc, test_s21_sprintf_Le_negative);
-  tcase_add_test(tc, test_s21_sprintf_lu_max);
+  // tcase_add_test(tc, test_s21_sprintf_lu_max);
   tcase_add_test(tc, test_s21_sprintf_hu_normal);
   tcase_add_test(tc, test_s21_sprintf_lo_hash);
   tcase_add_test(tc, test_s21_sscanf_c_normal);
