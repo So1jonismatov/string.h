@@ -2,6 +2,7 @@
 #define _S21_STRING
 
 
+#include <string.h>
 typedef unsigned long int s21_size_t;
 #define S21_NULL ((void*)0)
 
@@ -22,5 +23,6 @@ s21_size_t s21_strspn(const char *str1, const char *str2);
 char * s21_strstr(const char * haystack, const char * needle);
 char *s21_strtok(char *str, const char *delim);
 char *s21_strcpy(char *dest, const char *src);
+char *s21_strerror(int errnum);
 
 #endif
