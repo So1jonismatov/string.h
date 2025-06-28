@@ -1,5 +1,5 @@
 
-#include "s21_sprintf.h"
+#include "s21_string.h"
 
 // AAAAAAAAAAAAAAAAAAAAAA
 
